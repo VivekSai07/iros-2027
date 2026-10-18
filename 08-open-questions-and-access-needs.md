@@ -21,5 +21,5 @@
 - Novelty re-check of G1/G2/G4.
 
 ## Added 2026-10-18 (G1 re-check)
-10. **OpenReview NeurIPS 2026 RTCA workshop** accepted papers (https://openreview.net/group?id=NeurIPS.cc%2F2026%2FWorkshop%2FRTCA) — page is JavaScript-rendered, agent fetch failed; please check manually for robot/manipulation interruption papers.
+~~10. **OpenReview NeurIPS 2026 RTCA workshop** accepted papers (https://openreview.net/group?id=NeurIPS.cc%2F2026%2FWorkshop%2FRTCA) — page is JavaScript-rendered, agent fetch failed; please check manually for robot/manipulation interruption papers.~~ RESOLVED 2026-10-18: list supplied by user (`inputs/rtca-accepted.md`, 37 posters, may continue on another page); no manipulation-with-spoken-interruption paper among them (D-017).
 ~~11. **RIAP full paper** (NeurIPS 2026 poster 162424): title/authors not shown on the virtual page; need camera-ready/preprint to see whether it simulates manipulation physics with spoken revisions.~~ RESOLVED 2026-10-18: full text supplied by user, see `inputs/riap-notes.md` and D-016 (synthetic replay, no physics; not a G1/G2 competitor).
