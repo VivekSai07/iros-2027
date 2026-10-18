@@ -39,7 +39,7 @@ We found no work that has all five [inference over G1's matrix; the search was n
 | Yu & Qiu 2606.08881 | SO-101 failure taxonomy with SmolVLA and ACT | Not interruption-specific | [V abstract] |
 | Song 2607.00530 | n=24; spoken commands on a low-cost arm | No interruptions; no metric↔rating analysis | [V] |
 | MIRA 2609.24547 | Streaming barge-in; bounded 0.5 s commitment | Gestures, not manipulation; latency only to command dispatch | [V] |
-| RIAP (NeurIPS 2026) | Act/wait/defer on partial speech; N=30; unsafe commits 27.5%→1.6% | Physics and speech details unknown | [V abstract]; rest [U] |
+| RIAP (NeurIPS 2026 workshop) | Act/wait/defer on partial speech; unsafe commits 27.5%→1.6% in synthetic replay; N=30 ratings (browser mobile-base task) | Replay has no speech audio or physics; WAIT cannot brake motion in progress; no code; human study compares system bundles | [V full text, user-supplied] |
 | Premover 2605.12160 | Acts on streaming speech on a real SO-101 | Excludes corrections after motion starts | [V] |
 
 **Borrowed, not claimed:** Causeway's timing grid, success relative to solo ρ_B, Reach / Fin|R and object strata; LIBERO-MAX's paired with/without design (absent from Causeway [V]; attribution is inference pending a full-text read); SocialVLA's hold criterion and latency decomposition.
@@ -137,7 +137,7 @@ A reusable low-cost benchmark compared against LeRobot's shipped stop path; fail
 - **Scoop risk: HIGH.**
   - 11 adjacent papers appeared between 2026-09-21 and 2026-10-14 [V dates, G1].
   - The Skoltech group has published both SocialVLA and JitterVLA; a merged follow-up is plausible [inference].
-  - We cannot check the RTCA workshop papers or RIAP's full text (blocked).
+  - We cannot check the other RTCA workshop papers (list blocked); RIAP's full text is read and does not cover post-onset corrections.
   - LeRobot lists "buffered motion" as a priority, and PR #4108 adds flush-based voice task switching [V].
   - Re-check novelty weekly.
 - **Prefix bias or task islands erase C2's gains.** Reframe as a systematic study: C1 + C3, with C2 reported as a negative or ablation result.
