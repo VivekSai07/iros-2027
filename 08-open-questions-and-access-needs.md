@@ -1,7 +1,7 @@
 # Open questions and access needs (for the humans)
 
 ## Access needed (research rule: ask, don't skip)
-1. **ELLSA release status** — check github.com/bytedance/SALMONN (branch ELLSA): code, checkpoints, barge-in data? (blocked for the agent by robots.txt)
+1. ~~**ELLSA release status**~~ RESOLVED 2026-10-18 (see `inputs/ellsa-readme.md`, D-015). Original text: — check github.com/bytedance/SALMONN (branch ELLSA): code, checkpoints, barge-in data? (blocked for the agent by robots.txt)
 2. IEEE Xplore / ACM DL full text for: Tufts/TUW IROS 2025, CMU bidirectional pHRI (HRI 2026), Skantze & Irfan HRI 2025, Hoffman fluency metrics original paper.
 3. RIAP (NeurIPS 2026 listing 162424): confirm acceptance/status and read full text if available.
 4. NIABench (2605.01368): details beyond abstract.
