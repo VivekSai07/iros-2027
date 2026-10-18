@@ -1,0 +1,24 @@
+T1 pi05 Bare          mean=25.97 reported=26.0 ok=True
+T1 pi05 CPG           mean=27.60 reported=27.6 ok=True
+T1 pi05 CAA           mean=25.00 reported=25.0 ok=True
+T1 pi05 Action        mean=28.47 reported=28.5 ok=True
+T1 pi05 Ours          mean=61.57 reported=61.6 ok=True
+T1 OFT Bare           mean= 3.40 reported=3.4 ok=True
+T1 OFT CPG            mean= 7.00 reported=7.0 ok=True
+T1 OFT CAA            mean= 0.83 reported=0.8 ok=True
+T1 OFT Ours           mean=64.53 reported=64.5 ok=True
+T1 GR00T Bare         mean= 9.93 reported=9.9 ok=True
+T1 GR00T CPG          mean=10.30 reported=10.3 ok=True
+T1 GR00T CAA          mean= 4.60 reported=4.6 ok=True
+T1 GR00T Ours         mean=47.50 reported=47.5 ok=True
+T1 Servo single       mean=47.23 reported=47.2 ok=True
+T1 Servo wrist-first  mean=73.67 reported=73.7 ok=True
+T1 Placement          mean=79.17 reported=79.2 ok=True
+trials/model 5112
+T2 appr bare  mean= 42.9 reported=42.9 ok=True
+T2 appr ours  mean=100.0 reported=100 ok=True
+T2 pre bare   mean= 14.3 reported=14.3 ok=True
+T2 pre ours   mean= 94.3 reported=94.3 ok=True
+T2 after bare mean= 17.1 reported=17.1 ok=True
+T2 after ours mean= 82.9 reported=82.9 ok=True
+real trials total 210

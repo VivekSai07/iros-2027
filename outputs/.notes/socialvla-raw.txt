@@ -1,0 +1,361 @@
+SocialVLA: A Social Perception Gateway for Human-Reaction-Based Failure Detection and Recovery in VLA Manipulation
+Sofya Konstantinova1,2, Miguel Altamirano Cabrera1,2, Artem Lykov2,1, and Dzmitry Tsetserukou1
+
+arXiv:2610.02360v1 [cs.RO] 1 Oct 2026
+
+Fig. 1. We introduce SocialVLA, a local social-perception gateway that uses spontaneous human reactions—including speech, vocal affect, and facial behavior—to detect emerging VLA manipulation errors in real time, request a VLA hold, and record the participant’s verbal correction.
+
+Abstract— Vision-language-action (VLA) policies enable diverse robotic manipulation but remain susceptible to execution failures that may not be recognized by the policy itself. An observing human provides complementary information: unexpected robot behavior can elicit rapid vocal, facial, or explicit verbal reactions before an undesirable manipulation outcome is completed. We introduce SocialVLA, a local and policyagnostic social perception gateway that converts spontaneous human reactions into runtime intervention signals for VLA manipulation. SocialVLA combines causal paralinguistic audio detection, visual reaction recognition, explicit stop phrases, and robot-relevance estimation. An asynchronous first-event fusion mechanism allows the earliest sufficiently confident signal to request a VLA hold without waiting for complete multimodal agreement. After intervention, a separate speech channel records the participant’s verbal correction and associates it with the interrupted VLA action, enabling participantdirected continuation, restart, or instruction revision. We evaluate SocialVLA during physical Unitree G1 manipulation using recordings from 15 participants, comprising 238 annotated intervention-worthy reaction episodes and 1.038 h of annotated non-intervention behavior. Frozen offline replay of the multimodal cascade achieves 54.6% event recall and 69.5% precision, while unfiltered first-event audio–video fusion reaches 64.3% recall. The relevance module reduces false-stop episodes from 100 to 57 and increases precision from 60.5% to 69.8%. In a prospective deployment on a 16th unseen participant, the frozen system achieves 59.5% recall and 91.7% precision. Median detector-to-fusion delivery is 47.9 ms, median VLA-gate-to-
+1Intelligent Space Robotics Lab, Skolkovo Institute of Science and Technology, Moscow, Russian Federation.
+2R&D Center, MWS, Moscow, Russian Federation. E-mails: {sofya.Konstantinova, m.altamirano, artem.lykov, d.tsetserukou}@skoltech.ru.
+
+physical-hold latency is 336 ms, and matched reaction-onsetto-physical-hold latency is 1.021 s. These results demonstrate a complete local pathway from spontaneous social reaction to physical VLA interruption and a participant-directed recovery interface. Index Terms—Failure Detection and Recovery, MultiModal Perception for HRI, Human Factors and Human-inthe-Loop.
+I. INTRODUCTION
+Vision-language-action (VLA) models map visual observations and language instructions to robot actions, enabling policies to generalize across objects, tasks, and semantic commands [1], [2]. Their generality, however, does not eliminate execution failures. During pick-and-place manipulation, a policy can select the wrong object, generate an unsuitable approach, fail to establish a grasp, drop an object, or place it at an incorrect location. These failures may occur even when individual actions appear locally plausible.
+Recent methods detect failures from robot observations, trajectories, uncertainty estimates, or internal VLA representations. SAFE learns a failure score from VLA features and successful and failed rollouts [3]. FAIL-Detect frames runtime monitoring as sequential out-of-distribution detection [4]. AHA uses a vision-language model to identify and explain manipulation failures [5]. These approaches provide direct task evidence, but they may require access to policy internals, compatible observations, representative training data, or an explicit model of task progress.
+
+An observing person provides a different source of information. Humans can discriminate complex visual scenes within a fraction of a second [6], while nonverbal vocalizations can communicate recognizable affect within several hundred milliseconds [7]. When a robot acts unexpectedly, a person may use an explicit stop phrase, alter vocal prosody, display a negative facial reaction, shake their head, or redirect attention. These responses reflect the person’s appraisal of the interaction [8] and may reveal discrepancies that were not enumerated during policy training. Moreover, an observer need not wait until a failure is physically complete. From the evolving scene, motion direction, and task context, a person may recognize that a grasp or placement is developing incorrectly and react before the object is dropped, displaced, or released at the wrong location. Recent HRI benchmarks explicitly distinguish such anticipatory responses from reactions observed after failure completion [9].
+Prior human-robot interaction (HRI) studies have established that human reactions correlate with robot errors [10], [11], [12], [13], [14], [15]. However, retrospective reaction classification is not equivalent to an operational gate for a continuously executing VLA. In manipulation, detection time is part of the task: a correct decision made after an object has already been dropped or incorrectly placed cannot prevent the consequence. A runtime system must therefore process the earliest reliable signal with low delay, handle missing or uncertain modalities, and avoid waiting for unnecessary multimodal agreement. It should run locally without dependence on an Internet service, remain independent of the internal VLA architecture, and connect as an external layer to any policy that exposes a pause, hold, or stop interface. Repeated evidence must reinforce an intervention rather than reverse an already issued stop. The key challenge is therefore to convert spontaneous social behavior into a sufficiently fast and reliable runtime intervention signal for a continuously executing VLA, while avoiding unnecessary stops caused by unrelated human behavior.
+We address this challenge with SocialVLA, a modular social perception gateway between a human observer and an executing VLA. Rather than attempting to infer physical failure solely from the robot state, SocialVLA detects human-perceived discrepancies from continuous audio-visual behavior and converts them into structured runtime intervention events. The framework is local and does not require access to VLA activations, action probabilities, or internal uncertainty estimates. In this work, failure detection refers to detecting human-perceived intervention need during robot execution rather than exhaustively identifying all physical robot failures.
+The main contributions are:
+1) SocialVLA, a local and policy-agnostic social perception gateway that converts spontaneous human audiovisual reactions and explicit stop commands into runtime interventions during VLA-controlled humanoid manipulation;
+2) a causal multimodal intervention architecture that combines fast and extended-context paralinguistic detec-
+
+tion, visual reaction recognition, explicit stop phrases, separately estimated robot relevance, and asynchronous first-event fusion, allowing the earliest sufficiently confident signal to request a hold without waiting for complete multimodal agreement; and 3) a real-robot evaluation on the Unitree G1 using a 15participant annotated corpus and a prospective frozensystem deployment on a 16th, previously unseen participant, measuring reaction detection, false interventions, timely recall, and end-to-end physical stopping latency.
+Together, these contributions establish spontaneous social behavior as an operational input to VLA execution rather than only an offline observation signal. SocialVLA complements robot-internal failure monitors by contributing the observer’s task-level assessment while remaining independent of the internal architecture of the underlying VLA.
+II. RELATED WORK
+A. Failure Detection for Robot Policies
+VLA policies extend vision-language representations to robotic action generation [1], [2]. SAFE estimates task failure using internal VLA features and studies the trade-off between detection accuracy and timeliness [3]. FAIL-Detect extracts uncertainty-related signals from policy inputs and outputs and applies conformal sequential detection [4]. AHA instead observes robot trajectories and produces semantic failure judgments and explanations [5].
+SocialVLA is complementary to these methods. It does not require VLA activations, action probabilities, uncertainty estimates, or a task-specific success predicate. The same external reaction channel can therefore be attached to different policies. The cost of this independence is that SocialVLA cannot verify whether the observer’s interpretation is physically correct. A practical robot should combine humancentered and robot-internal evidence rather than treating either source as universally reliable.
+B. Human Reactions to Robot Errors
+Stiber et al. showed that multimodal human responses can support timely robot-error detection [10]. The BAD dataset subsequently captured bystander reactions to recorded robot failures [11], while REFLEX studied multimodal reactions to robot failures and subsequent explanations [13]. ERR@HRI introduced standardized multimodal benchmarks and timesensitive evaluation of error-related human behavior [14], [9]. Recent observations further show that human reactions remain informative in less controlled environments, although unrelated stimuli, groups, and repeated failures introduce substantial noise [15].
+Most closely related to SocialVLA, Stiber et al. implemented a proactive system that combines facial behavior, speech, explicit feedback, and robot-error context during live interaction [12]. SocialVLA differs in its intended role as an external gateway around a continuously executing VLA: it does not require access to VLA internals, explicitly separates reaction recognition from robot-relevance
+
+estimation, and prioritizes causal first-event intervention so that a sufficiently strong unimodal signal need not wait for multimodal agreement. The objective is therefore not only to recognize a human response retrospectively, but to convert that response into a actionable hold request during physical VLA execution.
+
+C. Human Reactions as Temporal Supervision
+Beyond triggering intervention, a detected human response indicates that the recent execution has become inconsistent with the observer’s expected task outcome. SocialVLA records this evidence without requiring the observer to operate a dedicated control device. The synchronized stop record identifies the active VLA action or chunk and associates it with the subsequent verbal correction. Such synchronized reaction and correction records may provide temporal supervision for future failure-aware or preference-based policy learning.
+
+III. SYSTEM ARCHITECTURE
+A. Event Representation and Scope Let xa(t) and xv(t) denote participant-facing audio and
+video streams. A detector produces:
+
+ei = (mi, ci, si, [t0i , ti1], tie),
+
+(1)
+
+where mi is the modality, ci the event class, si the score, [t0i , t1i ] the source interval supporting the decision, and tei the publication time. The system distinguishes fast reaction
+events, extended-context reaction events, and direct lexical
+events. Attention-target estimates are diagnostic; only the
+binary robot-relevance probability enters the candidate fusion
+rule.
+
+B. Audio Reaction Paths
+Audio is recorded at 16 kHz in mono. Each base observation is a causal 320-ms window. The Aniemore emotion model [16], based on wav2vec 2.0 [17], produces seven emotion logits that form the acoustic representation used by the downstream reaction heads.
+For a causal sequence of seven-dimensional observations Ht within a history h, the temporal representation is:
+
+ϕh(t) = [zt, mean(Ht), std(Ht), zt − zfirst], (2)
+where zt is the latest emotion-logit vector. Equation (2) produces 28 features. A gap longer than 0.21 s clears the history so that unrelated audio segments are not joined.
+The fast head uses h ≤ 0.4 s and an ExtraTrees classifier with 160 trees and minimum leaf size 2. The extendedcontext head uses the same feature definition but h ≤ 2.0 s and is trained independently with the same ExtraTrees hyperparameters. The fast path is intended to detect a reaction from the earliest available acoustic dynamics. The extendedcontext path captures prosodic evidence that develops beyond the fast window. Both heads belong to the online intervention stage; the extended-context estimate can enrich an open
+
+Fig. 2. SocialVLA architecture. Independent audio, lexical, and visual reaction channels produce asynchronous evidence. The selected soft fusion rule combines reaction confidence with bounded robot-relevance context. The first authorized event requests a VLA hold, while subsequent evidence is attached to the open reaction episode. A post-stop speech log records the participant’s correction without affecting the robot hold state.
+reaction episode but is not a prerequisite for issuing an earlier authorized hold request.
+Audio supervision is strictly modality-local. Its label specifies whether the acoustic behavior contains an intervention-worthy reaction. The fields robot_related and attention_target are not used as audio inputs, audio targets, sample-selection conditions, or sample weights. This prevents a model trained on speech from acquiring target information available only from synchronized video annotation.
+C. Direct Lexical Path
+Vosk remains an independent fast channel for authorized Russian stop commands and negative phrases. It does not replace the learned audio heads. An accepted Vosk event contributes a unit-strength lexical candidate. Direct stop phrases can therefore trigger the cascade even when vocal affect is weak, while the Aniemore heads can detect nonlexical or prosodic reactions before complete transcription.
+
+D. Video Reaction Head
+YuNet [18] detects the participant’s face, and five landmarks are used to align it. A MobileFaceNet facialexpression model produces seven facial-expression scores. A 25-dimensional per-frame vector contains these scores, normalized five-landmark geometry, face-detector confidence, normalized face position and size, and normalized yaw, pitch, and roll. The vector is concatenated with its causal 400-ms difference, producing 50 video-reaction features.
+An ExtraTrees classifier with 160 trees and minimum leaf size 20 maps these features to pv, the probability of an intervention-worthy visible reaction. Horizontally mirrored video features augment only the training partitions and the final candidate fit; mirrored samples are never added to a held-out fold.
+
+E. Robot-Relevance and Attention Heads
+Robot relevance is learned by a separate video-only binary logistic head. Its inputs combine gaze location, face availability, attention confidence, estimated attention states, selected object-detection scores, and facial features. The head produces:
+
+r = P (robot_related | xv), r ∈ [0, 1]. (3)
+
+The relevance target comes exclusively from video annotation.
+A four-class attention head estimates robot camera, robot workspace, external object, or away. Low-confidence predictions are rejected as unknown. This categorical output remains diagnostic and is not a hard stop gate. In particular, an estimated away direction does not act as an independent veto; the intervention decision remains determined by the fused confidence and operating threshold.
+
+F. Soft Multimodal Fusion
+Let paf and pac denote the fast and extended-context audio probabilities, pv the video-reaction probability, and v ∈ {0, 1} an authorized Vosk event. For stage q ∈ {f, c}, the raw reaction evidence is:
+
+uq = max(paq , pv, v).
+
+(4)
+
+The relevance factor depends on whether the evidence includes a direct lexical stop event:
+
+0.85 + 0.15r, v = 1,
+
+a(r, v) =
+
+(5)
+
+0.70 + 0.30r, v = 0,
+
+and the stage confidence is:
+
+sq = uqa(r, v).
+
+(6)
+
+For an explicit stop phrase, the 0.85 floor keeps a direct human command above the selected threshold even when visual relevance is uncertain. For prosodic and facial evidence, relevance can reduce confidence by at most 30%. It therefore remains a contextual cue rather than a veto. If no recent relevance observation is available, the runtime uses r = 0.5.
+
+The selected operating point is θ = 0.772. The fast and extended-context paths are evaluated independently, and the first authorized threshold crossing opens the intervention episode. The selected fusion rule, threshold, and temporal-association parameters are fixed after crossvalidated development-set selection and remain unchanged during the prospective evaluation.
+
+G. Temporal Association and First-Event Intervention
+
+The latest audio, video, Vosk, and relevance observations are associated when their source times fall within W = 700 ms. This interval accommodates natural cross-modal asynchrony and unequal inference times. It is an association window, not an additional waiting period.
+At deployment, the first authorized candidate may open a stop episode immediately. Later extended-context and cross-modal evidence are attached to the same episode. The intervention time is therefore:
+
+trequest = miin{tei : ci ∈ A}.
+
+(7)
+
+Here A contains the authorized fast, extended-context, and
+
+direct lexical stop-event classes. This policy differs from audio-AND-video fusion, which
+must wait until both modalities are available and can miss unimodal reactions.
+
+H. Stop-and-Correct Interface
+When SocialVLA detects an intervention-worthy reaction, the gasp-vla-gate sends one pause command to the running VLA and places it in a hold state. Further reaction events belonging to the same intervention episode do not produce additional control commands. The robot remains paused until the participant explicitly requests continuation. The participant may resume execution from the held state, adjust the workspace and restart the action, or provide a revised instruction for a subsequent VLA action.
+The language interface has two distinct roles. During execution, the low-latency Vosk path recognizes a restricted vocabulary of explicit stop commands and negative phrases. After the hold request, a separate Vosk logging session records unrestricted verbal correction together with its timestamp. This post-stop transcript is non-safety-critical: it cannot resume the robot, clear the hold state, or issue motion commands. The participant retains exclusive authority to continue execution through the explicit resume command. Separating immediate lexical interruption from post-stop transcription avoids delaying the first hold request.
+
+I. Reaction-Centered Intervention Records
+For every intervention k, SocialVLA stores an episode record:
+
+Mk = (idk, tr, ts, tc, ak, Mk, Ek, yk),
+
+(8)
+
+where tr, ts, and tc denote the synchronized reaction, stoprequest, and correction times; ak identifies the active VLA action or chunk; Mk and Ek store the contributing modalities and detector evidence; and yk stores the correction transcript.
+
+The record therefore associates the observer’s reaction and verbal correction with the VLA action active at the time of intervention. These records support analysis of humanidentified problematic execution segments and may provide supervision for subsequent failure-aware or preference-based policy-data curation; policy retraining itself is outside the scope of this work.
+IV. EXPERIMENTAL METHODOLOGY
+A. Platform and Task
+Experiments use a physical Unitree G1 humanoid controlled by GR00T-WholeBodyControl and a GR00T policy trained for a pick-and-place task. The robot must grasp a ball and place it in a specified target region. Participants observed both successful executions and naturally occurring VLA failures. Failure occurrence was not announced, and participants were not instructed to produce specific reactions.
+The prediction target in this study is the observer’s intervention-worthy response rather than a predefined taxonomy of physical failure modes. Consequently, the evaluation asks whether SocialVLA can recognize when a human observer perceives the ongoing execution as requiring intervention and can translate that perception into a timely VLA hold.
+B. Recordings and Annotation
+We collected capture-clock-synchronized audio–video timeline data across 15 finalized sessions from 15 distinct participants. Each participant stood approximately 1 m from the physical robot, could see both the robot and its workspace, could hear its operation, and knew that the task was to grasp and place the ball. Each session contains participant-facing RGB video and microphone audio synchronized with robot and model logs.
+Intervals were labelled by modality, intervention status (intervention-worthy or non-intervention), robot-related status, attention target, reaction subtype, and an event identifier linking modalities. Reaction onset is the first instant at which an intervention-worthy cue is recognizable from the isolated short clip; offset is the instant at which that cue disappears. Robot-error markers are recorded on the synchronized robot timeline, while detection latency is measured from human reaction onset. Only finalized, synchronization-verified annotations are used. Unannotated time is excluded and is never automatically labelled as non-intervention behavior.
+The finalized multimodal annotations contain 238 robotrelated intervention-worthy reaction episodes and 62.3 min of explicitly annotated non-intervention behavior. Audio and video manifestations that overlap or are separated by no more than 700 ms are automatically merged into one reaction episode.
+The positive class comprises observable reactions indicating that the participant perceives the ongoing robot execution as requiring intervention. These include explicit stop commands and spontaneous vocal, facial, or gestural responses. The target therefore represents human-perceived intervention
+
+need rather than an exhaustive ground truth over all physical robot VLA failure modes.
+
+C. Evaluation Protocol
+We use two complementary evaluation settings. First, the frozen multimodal cascade and its ablations are replayed over the annotated corpus collected from 15 participants without retraining or per-ablation threshold selection. This full-corpus analysis measures channel complementarity and operating trade-offs but is not presented as an unseenparticipant generalization estimate. Second, the complete frozen system is evaluated prospectively on a 16th, previously unseen participant during live VLA execution. This prospective participant is excluded from model fitting, hyperparameter selection, threshold selection, and calibration.
+The primary evaluation unit is one annotated reaction episode and one predicted stop episode. Intervention-worthy audio and video intervals form one reaction episode when they overlap or are separated by at most 700 ms. A predicted episode begins at the first threshold crossing; consecutive crossings separated by no more than 400 ms belong to the same prediction. One-to-one matching prevents a prolonged reaction from contributing multiple true positives. A prediction matches a reaction only when its first threshold crossing occurs between the annotated onset and 1 s after onset. The primary timely criterion uses the stricter interval from onset to 500 ms. Predictions preceding the annotated humanreaction onset are not counted as reaction detections.
+The development operating point maximizes event recall subject to an exploratory non-intervention false-positive-rate target of 0.10. Hyperparameters and thresholds are selected using development data and then frozen before full-corpus replay and prospective deployment. The 700-ms association interval is fixed as a cross-modal event-linking tolerance and is not added to detection latency.
+
+D. Metrics For event predictions, we report:
+
+TP
+
+Precision =
+
+.
+
+(9)
+
+TP +FP
+
+TP
+
+Recall =
+
+.
+
+(10)
+
+TP +FN
+
+NonInt-FPR = NNonInt,triggered , NNonInt
+
+(11)
+
+here, NNonInt is the number of manually delimited non-intervention or robot-unrelated episodes, and NNonInt,triggered is the number of those episodes containing at least one predicted stop. Because multiple false stop episodes may occur within one non-intervention interval, the FP count used for precision is not generally equal to NNonInt,triggered.
+
+2T P
+
+F1 = 2T P + F P + F N .
+
+(12)
+
+We additionally report false stop episodes per hour, median and 95th-percentile delay from reaction onset to the first stop request, and timely recall within 500 ms. Wilson 95% intervals are reported for recall, precision, and FPR; participant bootstrap intervals are used for cross-participant comparisons. Precision-recall analysis is preferred for imbalanced reaction data [19].
+V. EVALUATION RESULTS
+A. Full Multimodal Offline Evaluation
+Table I reports the complete frozen multimodal cascade replayed over all annotated sessions. The evaluation contains 238 manually annotated robot-related intervention episodes and 1.038 h of explicitly annotated non-intervention or robot-unrelated behavior. All audio, video, relevance, lexical, and temporal-fusion components use the deployed weights, thresholds, and 700-ms cross-modal association window.
+The complete cascade detects 130 of 238 intervention episodes, corresponding to 54.6% event recall and 69.5% precision. Of all annotated intervention episodes, 45.4% produce a stop within 500 ms of reaction onset. The fullcorpus replay also exposes the principal deployment tradeoff: first-event audio–video fusion improves reaction coverage, whereas relevance estimation suppresses a substantial fraction of unrelated stops. This trade-off is quantified by the component ablations in Table III. These results position SocialVLA as a precision-oriented human-perception channel rather than an exhaustive detector of robot failures. Its purpose is to complement robot-state and policy-internal monitors with intervention evidence that becomes available when an observer visibly or audibly identifies problematic execution. This interpretation is reinforced by the prospective result: the frozen system attains 91.7% precision on the previously unseen participant.
+B. Prospective Frozen-System Deployment
+To evaluate the complete system under a strictly frozen configuration, the SocialVLA feature extractors, learned heads, fusion rule, thresholds, and temporal association parameters were fixed before recording an additional participant who was not included in the development data. This prospective session was not used for model fitting, hyperparameter selection, threshold selection, or calibration. We use it as an end-to-end deployment evaluation rather than as a population-level generalization study. Table II is completed from this single prospective recording.
+One annotated intervention-worthy reaction episode and one predicted stop episode form the evaluation units in Panel (a). Recall500 is the fraction of all annotated intervention-worthy reaction episodes that produce a matched stop request no later than 500 ms after reaction onset. Nonintervention FPR is computed over 21 explicitly annotated non-intervention episodes, whereas false stops per hour uses 344.18 s of explicitly annotated non-intervention behavior. The 95% Poisson confidence interval for the observed falsestop rate is 2.53–75.57 false stops/h. The Wilson 95% confidence intervals are 43.5–73.7% for recall, 74.2–97.7%
+
+for precision, and 2.7–28.9% for non-intervention FPR. The median reaction-to-request delay is 0.742 s, whereas the median detector-to-fusion and fusion-to-gate delays are 47.9 ms and 0.66 ms, respectively. Thus, message transport after detector emission contributes only approximately 49 ms at the median. The remaining delay occurs before detector emission, while causal evidence sufficient for a decision becomes available. SocialVLA therefore targets intervention during the evolution of a manipulation failure rather than instantaneous response at the first video or audio sample.
+Panel (b) is calculated from capture-clock-aligned reaction annotations, detector events, fusion requests, VLA-gate events, and robot-state telemetry. Physical hold is defined as pre-stop body or hand motion of at least 0.12, followed by five consecutive telemetry samples with maximum absolute velocity at most 0.06. The reaction-onset-to-physicalhold latency is calculated independently for each temporally matched event and is not obtained by summing aggregate segment statistics. Detector-to-fusion and fusion-to-gate transport remain below 100 ms at p95; most end-to-end delay occurs before detector emission and during physical robot deceleration.
+C. Offline Ablation Study
+To quantify the contribution of each sensing channel, we replayed the same frozen SocialVLA configuration over all 15 annotated sessions. No retraining or threshold selection was performed separately for individual ablations. The evaluation contains 238 manually annotated robot-related intervention-worthy episodes and 1.038 h of explicitly annotated non-intervention or robot-unrelated behavior.
+The ablations expose complementary roles for the sensing channels. Audio-fast detects 48.3% of intervention episodes, while video independently detects 22.3%. First-event Audio+Video fusion increases recall to 64.3%, a gain of 16.0 percentage points over Audio-fast alone, confirming that the modalities recover partially distinct reactions. This coverage comes with 100 false stop episodes. Introducing robot relevance reduces false stops by 43%, from 100 to 57, lowers Non-interv. FPR from 41.1% to 27.8%, and increases precision from 60.5% to 69.8%, while retaining 132 of the 153 true positives recovered by unfiltered fusion. The Full SocialVLA row evaluates the complete deployment policy, combining the learned audio, video, and robot-relevance paths with frozen temporal fusion and a restricted directcommand interface.
+Non-interv. FPR is computed over explicitly annotated non-intervention/unrelated episodes, whereas false stops/h counts every false stop episode over the total nonintervention observation time. These all-session ablation results are descriptive offline comparisons and are separate from the prospective real-robot evaluation in Table II.
+D. Runtime and Stop–Correct Operation
+The perception heads accept seven Aniemore logits, 50 video-reaction features, and 40 video-relevance features. A reference offline audio encoding run required a mean of
+
+TABLE I FULL MULTIMODAL OFFLINE EVALUATION OF THE FROZEN SOCIALVLA CASCADE ON ALL ANNOTATED SESSIONS. THE EVALUATION COMBINES
+AUDIO, VIDEO, RELEVANCE, VOSK, AND TEMPORAL FUSION USING THE SAME DEPLOYED WEIGHTS AND THRESHOLDS.
+
+System
+
+TP FP FN Recall1s Timely Recall500 Precision Non-interv. FPR False stops/h
+
+Full SocialVLA 130 57 108 54.6%
+
+45.4%
+
+69.5%
+
+28.9%
+
+54.9
+
+TABLE II PROSPECTIVE EVALUATION OF THE FROZEN SOCIALVLA SYSTEM ON A PREVIOUSLY UNSEEN PARTICIPANT. PANEL (A) REPORTS EVENT-LEVEL REACTION DETECTION; PANEL (B) REPORTS THE SYNCHRONIZED LATENCY PATH FROM OBSERVABLE REACTION ONSET THROUGH DETECTOR OUTPUT
+AND THE VLA GATE TO PHYSICAL ROBOT HOLD.
+
+(a) Event-level detection and intervention performance
+
+Method
+
+TP FP FN Recall Precision Non-interv. FPR False stops/h Recall500 Reaction-to-request median / p95 (s)
+
+Full SocialVLA cascade 22 2 15 59.5%
+
+91.7%
+
+9.5%
+
+20.9
+
+21.6%
+
+0.742 / 0.932
+
+(b) Actionable stop-path latency measured during live deployment (s)
+
+Segment
+
+Median p95 Maximum
+
+Detector → fusion stop request (n = 22) Fusion stop request → VLA gate (n = 22) VLA gate → physical hold (n = 24) Reaction onset → physical hold (n = 14)
+
+0.048 0.001 0.336 1.021
+
+0.085 0.001 0.681 1.569
+
+0.091 0.001 1.559 1.576
+
+TABLE III OFFLINE ABLATION STUDY ON ALL ANNOTATED SESSIONS USING IDENTICAL FROZEN WEIGHTS, THRESHOLDS, AND A 700-MS CROSS-MODAL
+ASSOCIATION WINDOW.
+
+Path
+
+TP FP FN Recall1s Timely Recall500 Precision Non-interv. FPR False stops/h
+
+Audio-fast
+
+115 72 123
+
+Audio-context
+
+111 30 127
+
+Video
+
+53 30 185
+
+Audio+Video
+
+153 100 85
+
+Audio+Video+relevance 132 57 106
+
+Full SocialVLA
+
+130 57 108
+
+48.3% 46.6% 22.3% 64.3% 55.5% 54.6%
+
+41.6% 39.9% 16.8% 54.6% 45.8% 45.4%
+
+61.5% 78.7% 63.9% 60.5% 69.8% 69.5%
+
+32.2%
+
+69.3
+
+20.0%
+
+28.9
+
+17.8%
+
+28.9
+
+41.1%
+
+96.3
+
+27.8%
+
+54.9
+
+28.9%
+
+54.9
+
+47.6 ms per 320-ms audio window in batched processing. In the prospective live run, the median and p95 detector-tofusion-request delays were 47.9 and 84.9 ms, respectively; fusion-to-VLA-gate delivery required 0.66 ms at the median and 0.93 ms at p95. These measurements characterize local inference and message transport, while Table II separately reports transport and physical-hold components measured during live VLA execution.
+At runtime, the first authorized reaction event sends a stop request to the VLA gate, which places the running policy in a hold state. Later detections belonging to the same reaction do not generate repeated pause commands. While the robot remains held, the post-stop speech channel records the participant’s verbal description together with the reaction, active VLA action, and stop timestamps. The participant can then explicitly continue the held execution, restart from an adjusted scene, or provide a revised instruction. Consequently, each intervention produces a reactioncentered marker that can be used to locate human-identified problematic action segments during subsequent VLA dataset curation.
+
+VI. DISCUSSION
+The central result of this work is that spontaneous human reactions can be converted into an operational runtime signal for an executing VLA without requiring access to the policy’s internal representations. In this setting, classification performance alone is insufficient: a useful intervention mechanism must balance reaction coverage, false stops, and the delay between an observable human response and physical robot hold.
+A key architectural choice is to separate reaction recognition from robot relevance. The audio heads learn whether an audible response indicates a need for intervention and never receive video-derived attention or addressee labels. Robot relevance is instead estimated by a separate visual head and enters fusion only as bounded contextual evidence. This factorization reduces cross-modal label leakage and prevents attention estimation from becoming an independent hard gate.
+The two-stage structure separates time-critical intervention from post-stop interpretation. During execution, SocialVLA acts on the earliest authorized reaction signal. The fast and extended-context audio heads are complementary detection
+
+horizons within this first stage: the latter can recognize gradually developing prosody but is not required before a hold is requested. After the hold, unrestricted speech recognition records the participant’s description or correction without affecting the latency of the initial intervention.
+SocialVLA is most useful when a human notices a discrepancy that is not represented in the policy state. It is less effective when the observer does not react, reacts ambiguously, or responds to an unrelated stimulus. A future system should combine SocialVLA with robot-internal monitors such as non-intervention or FAIL-Detect.
+VII. LIMITATIONS AND ETHICAL CONSIDERATIONS
+Across the two evaluation settings, the study includes 16 participants: 15 participants in the annotated offline corpus and one additional, previously unseen participant in the prospective deployment. The offline corpus contains 238 intervention-worthy reaction episodes and 62.3 min of explicitly annotated non-intervention behavior. This sample does not by itself establish generalization across language, culture, age, appearance, neurodiversity, or reaction style.
+The categorical attention head is diagnostic and coarse. The binary relevance head may confuse robot-related reactions with coincident behavior. The 0.7 floor limits the damage caused by such errors but also permits unrelated strong reactions to pass through. Calibration and false-stop behavior must be studied on longer recordings containing natural distractors.
+SocialVLA detects human-perceived intervention need rather than all physical robot failures. A failure that the observer does not notice or does not visibly react to is therefore outside the positive ground truth used in this study. Conversely, an observer may react to an event that is not objectively a robot failure. SocialVLA should consequently be interpreted as a complementary human-centered monitoring channel rather than a replacement for robot-state failure detection. It is not a certified safety system; a hardware emergency stop, conservative robot limits, and independent supervision remain necessary.
+VIII. CONCLUSION
+We presented SocialVLA, a local and policy-agnostic social perception gateway that uses spontaneous human reactions as an external runtime intervention channel for VLA-controlled manipulation. SocialVLA combines causal paralinguistic audio, visual reaction recognition, explicit stop phrases, and separately estimated robot relevance through asynchronous first-event fusion, allowing the earliest sufficiently confident signal to request a VLA hold without waiting for complete multimodal agreement. After the hold, a separate speech channel captures the participant’s correction and supports participant-directed continuation, restart, or instruction revision.
+Experiments on a physical Unitree G1 include offline multimodal evaluation over a 15-participant annotated corpus and a prospective deployment of the frozen system on a
+
+16th, previously unseen participant, demonstrating end-to-
+end operation of the complete stop-and-correct pipeline. The
+results support spontaneous social behavior as a complemen-
+tary source of runtime evidence for human-perceived VLA
+failures. Future work will combine this external social chan-
+nel with robot-internal failure monitors and investigate how
+reaction-centered correction records can support subsequent
+policy adaptation.
+REFERENCES
+[1] B. Zitkovich, et al., “RT-2: Vision-language-action models transfer web knowledge to robotic control,” in Proc. Conf. on Robot Learning, 2023, pp. 2165–2183.
+[2] M. J. Kim, et al., “OpenVLA: An open-source vision-language-action model,” in Proc. Conf. on Robot Learning, 2025, pp. 2679–2713.
+[3] Q. Gu, et al., “SAFE: Multitask failure detection for vision-languageaction models,” in Advances in Neural Information Processing Systems (NeurIPS), vol. 38, 2025, pp. 40 041–40 076.
+[4] C. Xu, et al., “Can we detect failures without failure data? uncertaintyaware runtime failure detection for imitation learning policies,” in Proc. of Robotics: Science and Systems, 2025, pp. 1–20.
+[5] J. Duan, et al., “AHA: A vision-language-model for detecting and reasoning over failures in robotic manipulation,” in Proc. Int. Conf. on Learning Representations, 2025.
+[6] S. Thorpe, D. Fize, and C. Marlot, “Speed of processing in the human visual system,” Nature, vol. 381, pp. 520–522, 1996.
+[7] M. D. Pell, H. Cui, Y. Mori, and X. Jiang, “Speak or shout? nonverbal vocalizations promote rapid detection of emotions in vocal communication,” PLOS ONE, vol. 21, no. 1, pp. 1–24, 2026.
+[8] K. R. Scherer and A. Moors, “The emotion process: Event appraisal and component differentiation,” Annual Review of Psychology, vol. 70, pp. 719–745, 2019.
+[9] M. T. Parreira, et al., “ERR@HRI 3.0 challenge: Multimodal detection of errors and anticipation in human-robot interactions,” 2026, arXiv:2607.11570.
+[10] M. Stiber, R. H. Taylor, and C.-M. Huang, “Modeling human response to robot errors for timely error detection,” in Proc. IEEE/RSJ Int. Conf. on Intelligent Robots and Systems (IROS), 2022, pp. 676–683.
+[11] A. Bremers, et al., “The bystander affect detection (BAD) dataset for failure detection in HRI,” in Proc. IEEE/RSJ Int. Conf. on Intelligent Robots and Systems (IROS), 2023, pp. 11 443–11 450.
+[12] M. Stiber, R. Taylor, and C.-M. Huang, “Robot error awareness through human reactions: Implementation, evaluation, and recommendations,” 2025, arXiv:2501.05723.
+[13] P. Khanna, A. Naoum, E. Yadollahi, M. Björkman, and C. Smith, “REFLEX dataset: A multimodal dataset of human reactions to robot failures and explanations,” in Proc. ACM/IEEE Int. Conf. on HumanRobot Interaction (HRI), 2025, pp. 1032–1036.
+[14] M. Spitale, et al., “ERR@HRI 2024 challenge: Multimodal detection of errors and failures in human-robot interactions,” in Proc. Int. Conf. on Multimodal Interaction (ICMI), 2024, pp. 652–656.
+[15] M. Stiber, S. Khan, R. Taylor, and C.-M. Huang, “Signal or “noise”: Human reactions to robot errors in the wild,” 2026, arXiv:2602.05010.
+[16] I. Lubenets, N. Davidchuk, and A. Amentes, “Aniemore: wav2vec2-emotion-russian-resd,” Hugging Face model repository, 2023. [Online]. Available: https://huggingface.co/Aniemore/ wav2vec2-emotion-russian-resd
+[17] A. Baevski, H. Zhou, A. Mohamed, and M. Auli, “wav2vec 2.0: A framework for self-supervised learning of speech representations,” in Advances in Neural Information Processing Systems (NeurIPS), vol. 33, 2020, pp. 12 449–12 460.
+[18] W. Wu, H. Peng, and S. Yu, “YuNet: A tiny millisecond-level face detector,” Machine Intelligence Research, vol. 20, pp. 656–665, 2023.
+[19] T. Saito and M. Rehmsmeier, “The precision-recall plot is more informative than the ROC plot when evaluating binary classifiers on imbalanced datasets,” PLOS ONE, vol. 10, no. 3, pp. 1–21, 2015.
+
+

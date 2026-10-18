@@ -1,0 +1,768 @@
+Causeway: Restoring Task Accessibility for Instruction Switching in VLA Policies
+Qingzi Wang1, Kaixi Feng1, Guangyao Shi2, Xiyang Wu1, Ang Li1, Dinesh Manocha1
+
+arXiv:2609.30913v1 [cs.RO] 25 Sep 2026
+
+Abstract—Vision-language-action (VLA) policies can execute many tasks from standard initial states, yet a new instruction may fail after another task has altered the robot’s physical state. We study instruction switching, where a new task is issued during or after the execution of a different one. We observe that a target task that is reliably completed from its standard initial states can become inaccessible from states produced by a preceding task. We call such states task islands. We propose Causeway, a training-free inference-time intervention. Given the current state and a re-entry pose for the target task, Causeway backpropagates through the frozen decoding computation and applies a state-directed write within the action-stream representation. The VLA decodes the return motion itself, without parameter updates, a new action head, or external action generation. Across 71 cross-object pairs, three switch timings, and three VLA architectures on LIBERO-Goal [1], Causeway raises bare-switch success from 3–26% to 47–65% and increases the rate of reaching the handoff neighborhood by 42–72 percentage points across models. Additional experiments on LIBERO-Object and a real xArm platform show that the recovery extends beyond the main LIBERO-Goal setting, both in simulation and on a robot.
+I. INTRODUCTION
+Vision–Language–Action (VLA) policies leverage pretrained multimodal representations to execute diverse manipulation tasks specified via natural language [2]–[5]. However, standard benchmarks evaluate tasks from fixed initial distributions [1]. In sequential deployment, completing one task alters the robot and scene state, often rendering subsequent tasks inaccessible. Because resetting between instructions discards progress, practical competence requires that tasks remain accessible from the states that preceding tasks leave behind.
+We study instruction switching, in which a policy begins task A and permanently receives instruction ℓB at an intermediate or terminal state. Although the policy may complete B reliably from its nominal initial states, it can fail to initiate B from states produced by A. We call these states task islands. Their occurrence depends on the target task and physical state, not simply on elapsed execution time.
+Task islands are closely related to the state-dependent steerability studied by ReSteer [6]. ReSteer measures postswitch success across intermediate states, attributes limited steerability coverage to insufficient task contrast in the training data, and improves the policy through stage-matched transition generation and self-refining behavioral cloning. We address a complementary problem: online recovery after a bare instruction switch has failed. Rather than generating transition data
+1University of Maryland, College Park, MD, USA. 2University of Southern California, Los Angeles, CA, USA.
+
+or updating the policy, we study and recover from inaccessible states in frozen VLAs. Main Results: We find that task accessibility can decline near contact and grasp events (Sec. III-C). At these states, a new instruction continues to alter the text representation, but its effect on the decoded action weakens substantially (Sec. III-E). The action-stream representation nevertheless remains locally steerable by a state-directed gradient.
+We introduce Causeway, a training-free inference-time intervention. Our formulation addresses the failure by guiding the robot toward a demonstration-supported re-entry region for the target task. Given the current state and a re-entry pose derived from target-task demonstrations, we define a targetdirected action objective, differentiate it through the frozen decoder, and add the resulting direction to the action-stream representation. Our frozen policy generates the recovery actions, while proprioceptive thresholds govern intervention and handoff. Causeway neither updates model parameters nor replaces policy control with a new action head or external action generation. Moreover, it does not teach the VLA a new task; rather it restores access to an existing capability. Our contributions are threefold:
+1) We characterize task islands through target-relative state compatibility and connect post-switch failure to demonstration-supported geometry (Sec. III-B), behavioral escape maps (Sec. III-C), and attenuation of instruction influence (Sec. III-E).
+2) We introduce Causeway, a training-free representation intervention with component-wise pose steering (Sec. IV-A) and state-dependent engagement and handoff (Sec. IV-B). Our method applies to parallel, flowmatching, and diffusion-based VLA decoders.
+3) Across 71 cross-object task pairs, three switch timings, and three VLA architectures on LIBERO-Goal (π0.5, OpenVLA-OFT, and GR00T N1.5), Causeway raises success from 3–26% to 47–65% (Sec. V). Experiments on LIBERO-Object and a real xArm platform (Sec. VI) further test its generality.
+II. RELATED WORK
+a) VLA policies and instruction switching: VLA policies use language to select behaviors from broad manipulation repertoires [2]–[5], [8]–[10], while standard benchmarks generally evaluate one instruction from a prescribed initial-state distribution [1]. High-level systems compose skills using learned affordances [11], and interactive approaches use language corrections to redirect ongoing behavior [12].
+
+Fig. 1: Causeway bridges task islands. (a) Demonstrations of task B define its demonstrated state set MB, with SB(g) denoting the valid re-entry region. (b) Executing task A can leave the robot in a state from which task B is no longer accessible, so a bare switch to ℓB fails. (c) Causeway steers the action-stream representation with a state-directed gradient (top) until the robot re-enters the basin, scheduled through four phases ⃝1 –⃝4 (bottom, Sec. IV-B). Dashed: write active; solid: the frozen policy completes B on its own.
+
+Recent works directly study task switching in VLA policies. SwitchVLA trains an execution-aware policy to select forward, rollback, and advance behaviors using phase and contact supervision [7]. ReSteer formalizes state-dependent steerability, evaluates post-switch success across intermediate states, and improves switching through generated transition data and policy refinement [6]. In contrast, Causeway shares the same observation that instruction responsiveness depends on state, but addresses a different recovery setting. Rather than training switching behaviors or fine-tuning the policy on generated transitions, Causeway uses target-relative geometry to restore access to a target task at inference time. This is consistent with the initiation-set perspective in hierarchical reinforcement learning [13], [14].
+b) Inference-time steering and representation intervention: Inference-time guidance modifies model predictions without updating parameters. Classifier-free and contrastive guidance amplify differences between conditional predictions [15], [16]. In robotics, DeLock applies contrastive prompt guidance to the denoising dynamics of a post-trained VLA, using the difference between new and previously trained prompts to preserve responsiveness under novel instructions [17]. Activation-steering methods instead add directions derived from contrasting examples or representations to intermediate model states [18]–[20]. These approaches strengthen an instruction-conditioned signal but do not explicitly determine which physical state would make the target task executable. In contrast, Causeway derives its intervention from the error between the current end-effector pose and a demonstration-supported re-entry pose. Our objective is state recovery rather than amplification of the instruction contrast.
+
+c) Recovery and low-level control: Motion planning, Cartesian servoing [21], and task-specific recovery policies can drive a robot directly toward a desired configuration. Such methods generate or override low-level actions outside the task policy. Recovery Chaining [22] learns a recovery policy that drives the system into a nominal controller’s initiation set [13], [14]; Causeway performs the analogous re-entry by steering the frozen policy’s own representation, adding no policy. It uses the re-entry pose only to define an action-space objective whose gradient steers the representation—the frozen VLA still generates every action—and thus lies between language-only guidance and external control.
+
+III. TASK ISLANDS AND ACCESSIBILITY
+
+A. Problem Formulation
+
+Let π(a | x, ℓ) be a language-conditioned policy over
+observations x and instructions ℓ, trained by imitation on a
+set of tasks {ℓk} with demonstration sets {Dk}. Running π closed-loop under a fixed ℓk from the initial state distribution induces a trajectory distribution pkπ(τ ); task k succeeds when its goal predicate Gk(τ ) holds at some step, and we use the symbol ρk = Prπ[Gk(τ ) = 1] for the policy’s success rate on k from the initial state.
+In instruction switching: the policy executes ℓA from the initial state, and at some state s along that execution the
+instruction switches permanently to ℓB. For such a state, let
+
+ρA→B(s) = Pr GB(τ ) = 1 | s, ℓB
+
+(1)
+
+π
+
+be the probability that the goal of B is subsequently reached, with the from-scratch success ρB as the reference. A task island refers to a state s at which ρA→B(s) is low, although ρB is high: the policy is competent at B, yet cannot begin
+
+Success rate (%) Escape rate
+
+Position 100
+80
+
+Axial
+
+Roll
+
+After completion
+r = −0.80
+
+60
+
+40
+
+20
+
+x
+
+y
+
+z
+
+0 −60 −30 0
+
+30 60
+
+Position offset (mm)
+
+-30 -20 -10 0 10 20 30 -0.5 -0.3-0.15 0 0.150.3 0.5
+
+Approach-axis tilt (deg)
+
+Roll (rad)
+
+A6
+A2 A5
+
+A4 A1
+
+A7 A9
+
+A8
+
+A3
+
+A0 drawer
+
+30
+
+60
+
+90
+
+Exit axis error (deg)
+
+Fig. 2: Entry-basin tolerance and terminal-state mismatch. Left three panels: success under component-wise perturbations around a re-entry pose; thin lines show individual tasks and bands show interquartile ranges. Right: bare-switch success after A completes vs. the source’s exit approach-axis error (r= − 0.80); A3 (red): low success despite moderate axis error—its hand exits inside the drawer.
+
+State s
+
+Start
+
+250 A1 180
+
+pre
+
+A3
+
+far pre
+
+250 A4 180
+
+pre
+
+250 A8 180
+
+pre
+
+250 A2 180
+
+pre
+
+250 A9 180
+
+pre
+
+250 A5 180
+
+pre
+
+250 A6 180
+
+pre
+
+A0
+
+far pre
+
+250 A7 180
+
+pre
+
+Bowl
+
+Bottle Plate CheeseDrawerStove |F(s)|
+
+10
+
+5 4
+
+1.00
+
+4
+
+2
+
+4 5
+
+0.75
+
+4
+
+4
+
+4
+
+4
+
+0.50
+
+4
+
+2
+
+2
+
+2 2
+
+0.25
+
+2
+
+2
+
+5
+
+2
+
+0.00
+
+2
+
+5
+
+1
+
+1
+
+1
+
+1
+
+1
+
+1
+
+1
+
+B1 B3 B4 B8 B2 B9 B5 B6 B0 B7
+
+Instruction ℓ issued at state s
+
+it from s. Thus, a task island is defined relative to a target task, policy, and rollout horizon. The remainder of this section makes this outcome-level definition usable, and explains the failure it names. Sec. III-B introduces an object-centric lens— the state ξ, the entry basin, and its measured tolerances— and uses it to construct a computable geometric proxy for Eq. (1). Secs. III-C and III-D locate islands behaviorally— during execution and after task completion—and tie their occurrence to the geometry of ξ. Sec. III-E then asks why a new instruction alone does not escape an island, and what remains steerable; Sec. IV turns these answers into Causeway.
+
+B. Object-Centric State and Entry Basin
+a) Object-centric state: Task B manipulates an object oB and, for pick-and-place tasks, moves it to a destination dB. We represent the state relevant to B as
+
+ξB = pEE −prB , REE , g ,
+
+rB =
+
+oB dB
+
+before contact, after the grasp,
+
+(2)
+
+where pEE and REE are the world-frame end-effector position
+
+and orientation; prB is the position of task reference rB, and
+g is the gripper state. Changing the reference from oB to dB keeps ξB task-relative during approach and transport. Orien-
+
+tation remains in the world frame because object orientations
+
+are fixed in our evaluation settings. Consequently, the same
+
+physical state maps to a different ξB for each target task.
+
+b) Demonstrated state set and entry basin: Let DB be the demonstrations of task B and MB = {ξB(s) : s ∈ DB}
+
+the demonstrated state set in ξ-space. The entry basin SB(g) is
+
+the phase-compatible subset selected by the gripper state g: the
+
+approach segment up to first contact when the gripper is open,
+
+and the beginning of the placement segment when it already
+
+holds oB. We expand these demonstrated states component-
+
+wise using the measured position, approach-axis, and roll
+
+tolerances in Fig. 2; each component lies within tolerance
+
+of a demonstrated state in the corresponding phase. Thus,
+
+SB(g) is a demonstration-derived region of states compatible
+
+with entering the corresponding phase of task B. Direct
+
+Fig. 3: Escape map (OpenVLA-OFT, LIBERO-Goal). 250, 180: hand–object distance, mm; pre: pre-grasp; far/pre for the two drawer tasks. Columns: the instruction issued at that state, grouped by target object. Cells: fraction of trials reaching the object of ℓ. Right: |F (s)|, the number of instructions with escape rate ≥ 0.5; |F (s)|=1 (red) marks committed states.
+
+placement at a demonstrated pre-grasp configuration recovers task completion (Placement, Table I).
+c) Executable set and task islands: We operationalize the empirical executable set of a state s as the instructions whose demonstrated state set contains it:
+
+F (s) = { ℓ : ξℓ(s) ∈ Mℓ }.
+
+(3)
+
+Because g is a component of ξ, membership in Mℓ already enforces gripper-phase compatibility. For example, an opengripper state cannot lie in a closed-gripper segment, so Eq. (3) requires no separate phase conditions. We treat a switch from A to B at state s as viable when ℓB ∈ F (s). Empirically, ρA→B(s) is low when ξB(s) ∈/ MB, which gives our geometric operationalization of a task island. As the policy executes A, ξℓ(st) leaves the demonstrated state sets of other tasks and |F (st)| generally contracts.
+d) Validation of the entry basin: The nominal rate ρB from Sec. III-A serves as the reference level: any return is evaluated against this level, not against 100% success. When the end effector is placed directly at a pose in SB and ℓB is issued, the policy—which conditions only on the current observation—recovers this level while the scene remains near B’s demonstrated configuration; completion of A can alter the scene (Table I). The same holds for poses sampled at different points along the approach segment, showing that SB has nonzero extent and the return target is not a specific pose.
+e) Tolerance bands of the basin: Starting from a pose placed directly on the demonstrated approach (e.g., 120 mm) before contact, we perturb one component of ξ at a time and rerun the policy (Fig. 2; 10 tasks × 4 trials per point). Success remains near the reference level for position offsets within
+
+30 mm, while the approach axis tolerates about ±20◦. Roll is asymmetric: +0.5 rad shows no measurable loss, whereas −0.15 rad already costs 20 pp. Gripper state is discrete: a pre-grasp pose with a closed gripper lies outside SB. These component-wise differences motivate use of separate write channels and handoff criteria of Sec. IV.
+C. Islands under Mid-Execution Switching
+We next ask when ℓB remains executable as the policy performs A.
+a) Measurement: the escape map: We probe executability at a state s by rolling the policy out closed-loop for a fixed horizon under each instruction ℓ and recording whether the end effector reaches its target object. The resulting stateby-instruction table is the escape map; thresholding its escape rates provides a behavioral estimate of the geometrically defined F (s) (Fig. 3). We sample states from the initial pose through approach, pre-grasp, and grasp, and construct the detailed map on OpenVLA-OFT because its instruction response attenuates most strongly along the approach (Fig. 4a); crossmodel generality is evaluated in Sec. V. In all tested cases, short-horizon reachability agrees with full-length rollouts.
+b) Object identity structures surviving tasks: At the shared initial pose all ten instructions are executable; as the policy executes A, most cross-object instructions fall out of F (s) (Fig. 3).The remaining set is strongly structured by object identity: at the final sampled state, all four bowl-source tasks retain the four bowl instructions, while both bottle-source tasks retain the two bottle instructions. Several singleton-object sources reach |F (s)|=1, where only one instruction remains. The evolution need not be monotone: along A3, |F (s)| falls from 10 to 2 and then rises to 4 as the remaining bowl instructions cross the escape threshold again. This rebound shows that executability follows the state rather than elapsed time. The same-object case is followed beyond pre-grasp below.
+c) Same-object pairs: When A and B manipulate the same object (oA=oB), post-grasp viability depends on whether their demonstrated grasp and early-transport states overlap. A switch can survive the grasp while those states remain compatible, then fail as the transport paths diverge. Without such overlap, the held state may become an island immediately.
+D. Islands after Task Completion
+The terminal state induced by A can itself be an island for B. Across source tasks, bare-switch success after completion ranges from 3% to 50% and is strongly negatively associated with the mean target-relative approach-axis error at exit, which spans 31◦–98◦ (r=−0.80; Fig. 2). A3 is an outlier because the hand ends inside the drawer region despite a mid-range axis error; A7 also ends with the gripper closed. Terminal mismatch can therefore involve several components of ξB, motivating the orientation channels and release step in Sec. IV.
+E. The Representation Gate
+The preceding analysis locates task islands. We now examine why a new instruction alone may not escape them.
+
+‖Δa‖/‖Δa‖start ‖Δa‖ (translation)
+
+(a) 100
+
+1.0 (b)
+
+0.8
+
++ write cos +0.9
+
+cos +0.95
+
+10−1
+
+OpenVLA-OFT π0.5
+GR00T N1.5
+
+0.0 0.2 0.4 0.6 0.8 1.0 Approach progress (0=start, 1=contact)
+
+0.6
+0.4
+open gate
+0.2 range bare
+0.0 OFT
+
+cos +0.95
+
+π0.5
+
+GR00T
+
+Fig. 4: Instruction influence attenuates along the approach, yet the gated representation remains steerable. (a) Action response to swapping ℓA→ℓB, relative to the start of the approach (median, IQR). (b) At post-approach states, a gradient direction computed on the current forward pass restores the response toward the open-gate range and aligns the decoded motion with the return direction.
+
+a) State attenuates the instruction’s effect on action: At a fixed observation along A’s trajectory, we run the policy with ℓA and ℓB and measure the action response ∥∆a∥ as the norm of the mean translational difference between the two decoded action chunks. The new instruction always changes the texttoken representation, but its effect on action depends on state. Before contact, ∥∆a∥ drops by one to two orders of magnitude on all three architectures (Fig. 4a)—beyond what converging near-optimal actions explain, since a gradient direction at the same states still produces motion toward B (Fig. 4b); we call this state-conditioned attenuation the gate. It appears along the same approach over which F(s) changes (Sec. III-C), linking the behavioral and representational findings.
+b) The action representation remains steerable at gated states: When the instruction no longer changes the action, a gradient from the current forward pass restores the action response and aligns the decoded motion with the return direction on all three architectures (Fig. 4b). This result identifies both the recovery target and intervention point: steer the action stream until ξB(s) returns to SB(g) (Sec. IV).
+IV. BRIDGING TASK ISLANDS BY REPRESENTATION STEERING
+Section III suggests three design choices: return to SB(g), intervene in the action-stream representation, and use a statedirected gradient when the instruction’s influence is attenuated. Causeway realizes all three: at test time it consumes only the robot’s proprioceptive state and a re-entry pose T ⋆ precomputed from the demonstrations of B, and every action is decoded by the frozen policy. A representation write moves the decoded action toward a target pose in SB(g) (Sec. IV-A), while a proprioceptive rule controls engagement and handoff (Sec. IV-B). Separate channels handle position, approach axis, roll, and gripper state because each has a different re-entry tolerance.
+
+A. Representation Write
+a) Write location: For each architecture, we write within the action stream identified in Sec. III-E: one layer L on π0.5 and GR00T N1.5, and multiple layers L on OpenVLA-OFT. Below, L denotes a generic write location; on OpenVLA-OFT the same operation is applied at each L ∈ L. Let h(Lk) ∈ RN×D denote the hidden state of the N action tokens at layer L during decoding step k, where D is the hidden dimension and k = 1, . . . , K. The final decoded action chunk is
+
+a = fL hL(1), . . . , h(LK) ,
+
+a ∈ RH×7,
+
+(4)
+
+where fL denotes the remaining decoding computation from L to the final action, H is the action-chunk horizon, and each
+decoded action comprises translation and rotation increments (R3 each) and one gripper command. For iterative action heads, K > 1; for a parallel-decoding head, K = 1 and Eq. (4)
+reduces to a single forward pass. b) Target: T ⋆ = (p⋆, R⋆) is chosen from the phase-
+compatible segment of SB(g) by the same fixed rule for all task pairs and models, without pair-specific tuning. A local neighborhood of T ⋆ defines the handoff condition (Sec. IV-B).
+c) Return geometry: Let (p, R) denote the current endeffector pose, corresponding to (pEE, REE) in Eq. (2). The return geometry toward T ⋆ is computed by the translational
+and rotational offsets
+
+ep = p⋆ − p, er = log(R⋆R−1)∨,
+
+(5)
+
+where (·)∨ maps a skew-symmetric matrix in so(3) to its corresponding three-dimensional rotation vector. Both errors are expressed in the world frame. We compute the rotational error from the relative rotation R⋆R−1, consistent with the policy’s left-multiplicative rotation increment.
+d) Gradient write: Let δ ∈ RD denote a shared representation perturbation. At each decoding step k, the same perturbation is broadcast to all N action tokens at layer L,
+
+h˜L(k) = h(Lk) + 1N δ⊤,
+
+k = 1, . . . , K,
+
+(6)
+
+where 1N ∈ RN is the all-ones vector. The same δ is shared across all decoding steps and, on OpenVLA-OFT, across every write layer L ∈ L. Let a(δ) denote the final action
+chunk produced by the complete decoding process under all such injections. Each channel c defines a scalar objective Jc(a) as the component of the predicted motion along its desired direction (e.g., up for position, defined below). The
+corresponding representation-space direction is
+
+gˆc
+
+=
+
+∇δJ c(a(δ)) ∥∇δJ c(a(δ))∥
+
+.
+δ=0
+
+(7)
+
+Each channel is normalized separately, so relative strengths are set only by the per-channel gains introduced below. The gradient is computed through the complete decoding computation. On OpenVLA-OFT’s parallel-decoding head, this reduces to a single forward–backward pass.
+
+1) Channel Decomposition: Let the h-th decoded action be ah = (ah,xyz, ah,rot, ah,g), for h = 1, . . . , H. We aggregate each component over the action chunk as
+
+H
+
+H
+
+H
+
+a¯xyz = ah,xyz,
+
+a¯rot = ah,rot,
+
+a¯g = ah,g.
+
+h=1
+
+h=1
+
+h=1
+
+(8)
+
+Let zˆw = Rzˆ denote the current gripper approach axis in the world frame, where zˆ is the unit approach axis in the gripper
+
+frame. We define separate objectives for translation, approach-
+
+axis alignment, roll, and gripper motion. a) Position channel: Let up = ep/∥ep∥ denote the unit
+direction toward p⋆. We define
+
+J p = ⟨a¯xyz, up⟩.
+
+(9)
+
+Substituting Jp into Eq. (7) gives gˆp, the representation direction that locally increases decoded motion toward p⋆. The
+remaining channels are constructed in the same way from their
+corresponding objectives. b) Orientation decomposition: We decompose the ro-
+tational error er into a component that changes the gripper
+approach direction and a component about that direction:
+
+e⊥ = er − (er ·zˆw)zˆw,
+
+(10)
+
+r = er ·zˆw.
+
+(11)
+
+Here, e⊥ changes the approach direction and r is the signed
+
+roll error about the current approach axis. c) Approach-axis channel: Let u⊥ = e⊥/∥e⊥∥. We
+
+define
+
+J ⊥ = ⟨a¯rot, u⊥⟩,
+
+(12)
+
+which yields the representation direction gˆ⊥.
+
+d) Roll channel: The desired roll direction is sign(r)zˆw,
+
+giving
+
+J r = ⟨a¯rot, sign(r)zˆw⟩.
+
+(13)
+
+The resulting representation direction is gˆr. Because successful re-entry is sensitive to roll error (Sec. III), we taper its gain near zero:
+
+αr(r) = αrmax min
+
+|r| 1,
+κ
+
+⊮[|r| > ϵ],
+
+(14)
+
+where κ defines the proportional band and ϵ the dead-band
+threshold. e) Gripper channel: When the hand holds oA and oA ≠
+oB, the return begins by opening the gripper: Jg = a¯g on the gripper command channel, which yields gˆg. If the hand
+already holds oB, the closed-gripper branch of SB(g) is used instead.
+f) Composition: The write applied at inference step t is
+
+δt =
+
+αg gˆg , αpgˆp + α⊥gˆ⊥ + αr(r)gˆr,
+
+during release, otherwise.
+
+(15)
+
+At each inference step, the channel directions are evaluated at δ = 0, combined according to Eq. (15). The final action is decoded by the policy from the shifted representation (gain values in Sec. V-A).
+
+B. Engagement and Handoff
+
+The representation write is scheduled from proprioception
+
+and the target pose T ⋆ = (p⋆, R⋆). Let zˆw⋆ = R⋆zˆ and we define
+
+T0 = (p0, R⋆),
+
+p0 = p⋆ − d0zˆw⋆ .
+
+(16)
+
+a) Engagement and return: The write starts at the instruction switch. If the hand holds oA ≠ oB, only the gripper channel is active until the hand opens beyond g¯; otherwise, the position and orientation channels engage immediately. They first drive the end effector toward T0 while aligning with R⋆. Once p0 is reached and the approach axis is aligned, the position target switches to p⋆ when |r| < γ, or after Nγ additional steps. Upon entering the neighborhood of T ⋆, the write continues for at most Nd steps; the roll channel is disabled during this dwell to avoid constraining the policy’s subsequent wrist motion.
+b) Handoff: The write disengages after the dwell or earlier when the gripper remains closed around a non-empty grasp for two consecutive steps inside the neighborhood of T ⋆. A closure outside this neighborhood does not trigger handoff; the gripper channel reopens the hand and the return continues.
+This schedule determines only when the write is active and which channels engage; it issues no motor commands; every action, during re-entry and after handoff, is decoded by the frozen policy.
+
+V. SIMULATION EXPERIMENTS
+We test four hypotheses: task islands occur across models and switch timings (H1); Causeway restores access through re-entry (H2); neither instruction contrast nor action-level steering is sufficient (H3); the state-compatibility account extends beyond the main cross-object setting (H4).
+
+A. Setup
+a) Benchmarks: We evaluate LIBERO-Goal’s 90 ordered task pairs: the main evaluation uses the 71 cross-object pairs, and the 14 same-object pairs serve H4. Five pairs are excluded because executing A displaces B’s target configuration. We also evaluate LIBERO-Object to test generalization beyond LIBERO-Goal.
+b) Policies: We evaluate benchmark-fine-tuned checkpoints of OpenVLA-OFT [23] (parallel decoding), π0.5 [24] (flow matching), and GR00T N1.5 [5] (diffusion). Writes target the action-stream layers diagnosed in Sec. III-E: layers {8, 12, 16, 20, 24, 28, 30} for OpenVLA-OFT, layer 15 for π0.5, and DiT block 16 for GR00T. OpenVLA-OFT and GR00T use a single gain profile across all pairs. For π0.5, three fixed geometry-driven profiles are used: grasp-and-place targets use a larger translation gain, while sources A0 and A9 use a stronger orientation gain to counter post-completion wrist-angle errors (Sec. III-D). All gain profiles remain fixed across pairs and switch timings, and the schedule thresholds (γ = 0.3 rad, Nγ = 20, Nd = 15 steps; Sec. IV-B) are additionally shared across all three models.
+
+c) Protocol and metric: Policies execute ℓA from benchmark initial states before switching to ℓB at step 30 (approach), step 60 (object held in 58–61% of trials), or post-completion. Evaluating 71 pairs across 3 switch conditions, 8 initial states, and 3 rollouts yields 71 × 3 × 8 × 3 = 5,112 trials per model. Because switch states vary, success is evaluated over the state distribution pAπ induced by task A at switch timing τ ∈ {30, 60, done}:
+ρA(τ→) B = Esτ ∼pπA [ρA→B (sτ )],
+under standard LIBERO criteria. All models achieve nearperfect from-scratch success on target tasks from clean initial states.
+d) Inference cost: On one A100-80GB, per-chunk latency rises 2.5–2.8× (102/75/128 → 253/187/362 ms; replanning 4.0/5.3/2.8 Hz; +≤4.3 GiB peak) on OFT/π0.5/GR00T, active only during re-entry.
+e) Baselines: We compare against four steering baselines: (1) Bare switch, which directly replaces ℓA with ℓB; (2) Contrastive prompt guidance (CPG) [17], which combines predictions via vA + w(vB − vA); (3) Contrastive activation addition (CAA) [19], which injects online differences dL ∝ h¯L(xt, ℓB) − h¯L(xt, ℓA) at each step through Causeway’s write machinery; and (4) Action-space steering, which applies the state-directed signal and schedule as a Cartesian residual directly on the decoded actions, evaluated on π0.5, where the baseline signal is strongest and floor effects are smallest.
+f) References with Privileged recovery control: We also report references with privileged recovery control on OpenVLA-OFT. State placement sets the robot to a demonstration pre-grasp configuration of B at the switch while preserving the scene. The single-point and wrist-first servos drive the arm to the same configuration with an external controller, the latter along a hand-designed wrist-first path. These are references rather than baselines: they rely on state manipulation, external control, or hand-designed motion that Causeway does not use.
+B. Results
+a) H1: Causeway bridges task islands: Across 71 crossobject pairs and three switch timings, bare-switch success averages 26.0% for π0.5, 3.4% for OpenVLA-OFT, and 9.9% for GR00T (Table I), despite near-perfect from-scratch performance. Causeway raises success to 61.6% (+35.6 percentage points), 64.5% (+61.1), and 47.5% (+37.6), respectively. Gains are positive for every model, timing, and target (Fig. 5), ranging from +28.6 points for GR00T after completion to +72.1 for OpenVLA-OFT at step 30.
+b) H2: Causeway restores access through re-entry: Causeway raises the rate of reaching the handoff neighborhood by 42–72 percentage points and increases completion conditioned on reaching it for all three models (Table I, Fin|R). Thus, it both reaches the neighborhood more often and arrives in states from which the frozen policy completes B more reliably. T ⋆ is a representative target within the entry basin, not a uniquely tuned recovery pose (Section III-B).
+
+TABLE I: Switch success (%). ℓB issued at Step 30, Step 60, or after A completes. Reach: fraction reaching the handoff neighborhood of T ⋆; Fin|R.: completion given reach. Gray:
+references using external state manipulation. Best steering
+method per block in bold.
+
+Switch point
+
+Re-entry to T ⋆
+
+Model
+
+Method
+
+Step 30 Step 60 After Avg. Reach Fin|R.
+
+Bare
+
+29.9 22.9 25.1 26.0 18.7 58.7
+
+CPG
+
+35.2 21.1 26.5 27.6 –
+
+–
+
+π0.5
+
+CAA
+
+26.9 21.7 26.4 25.0 –
+
+–
+
+Action
+
+37.5 21.3 26.6 28.5 –
+
+–
+
+Ours
+
+60.9 60.4 63.4 61.6 61.0 74.0
+
+OpenVLAOFT
+
+Bare CPG CAA Ours
+
+5.1 2.9 2.2 3.4 9.3 25.3
+
+10.3 6.7 4.0 7.0 –
+
+–
+
+0.0 0.0 2.5 0.8 –
+
+–
+
+77.2 60.5 55.9 64.5 81.3 73.7
+
+GR00T N1.5
+
+Bare CPG CAA Ours
+
+14.6 11.8 3.4 9.9 8.7 45.0
+
+13.2 10.0 7.7 10.3 –
+
+–
+
+5.0 5.0 3.8 4.6 –
+
+–
+
+67.2 43.3 32.0 47.5 79.0 59.3
+
+References using external state manipulation
+
+Servo (single-point) Servo (wrist-first) Placement
+
+67.5 97.0 95.0
+
+49.2 25.0 47.2 – 76.0 48.0 73.7 – 93.1 49.4 79.2 –
+
+– – –
+
+TABLE II: Real-robot instruction switching (xArm, π0.5 fine-tuned). Success rate (%) over 5 trials per cell. ℓB is issued during the approach, at the pre-grasp pose, or after A completes. Tasks: press button, put the bowl on the plate / shelf, put the corn in the drawer (corn). †: same-object pairs (both move the bowl). Solo: the policy’s own success on B from the standard start.
+
+Approach
+
+Pre-grasp
+
+A→B
+
+bare ours bare ours
+
+button → shelf
+
+100
+
+100
+
+0
+
+100
+
+shelf → button
+
+0
+
+100
+
+0
+
+80
+
+button → plate
+
+0
+
+100
+
+0
+
+100
+
+plate → button
+
+0
+
+100
+
+0
+
+80
+
+corn → plate
+
+0
+
+100
+
+0
+
+100
+
+plate → shelf†
+
+100
+
+100
+
+0
+
+100
+
+shelf → plate†
+
+100
+
+100
+
+100
+
+100
+
+Pooled
+
+42.9 100 14.3 94.3
+
+Solo (%): button 80, plate 100, shelf 100, corn 80.
+
+After A
+
+bare ours
+
+40
+
+80
+
+0
+
+60
+
+0
+
+100
+
+0
+
+100
+
+80
+
+100
+
+0
+
+60
+
+0
+
+80
+
+17.1 82.9
+
+B0 B1 B2 B3 B4 B5 B6 B7 B8 B9
+0
+
+π0.5 OpenVLA-OFT GR00T N1.5
+bare switch + ours
+
+20
+
+40
+
+60
+
+80
+
+100
+
+Switch success (%)
+
+Fig. 5: Per-target switch success, pooled over source tasks, switch timings, initial states, and rollouts. Filled: with the write; white inset: bare switch. Bottom: pooled average.
+
+c) H3: neither instruction contrast nor action-level steering overcomes the gate: Prompt-level contrast provides no consistent recovery: CPG shifts average success by at most +3.6 pp and reduces it at some timings (Table I). Representation-level contrast fails more decisively. CAA uses the same write machinery as Causeway and differs only in direction, yet performs at or below the bare switch on all three models on average (Table I). Consistently, at gated states the gradient write induces target-aligned motion while the instruction-difference direction does not (Fig. 4b).
+The same state-directed signal also performs poorly when applied only at the action level. On π0.5, a Cartesian residual improves the step-30 switch but falls near bare at step 60 and after completion, while the representation write exceeds 60% at all three timings. Each alternative therefore lacks at least one of two ingredients: state-directed steering or representationlevel injection.
+
+d) Privileged recovery references: On OpenVLA-OFT, Causeway (64.5%) outperforms even the externally controlled single-point servo (47.2%). Stronger privileged references perform better: the hand-designed wrist-first servo reaches 73.7%, and direct state placement 79.2% (Table I). Thus, matching or exceeding Causeway requires additional external control, hand-designed motion, or direct state manipulation.
+e) H4: state compatibility beyond the main setting: Same-object switches follow the state-compatibility account of Sec. III-C: switches remain viable while the two tasks share compatible holding states and fail after their trajectories diverge. On LIBERO-Object, the write lifts the committed-state switch from 0% to 57.5% on the evaluated pairs, extending the recovery beyond the main cross-object setting.
+VI. REAL-WORLD EXPERIMENTS
+We validate Causeway on an xArm 6 with π0.5, finetuned on 30 teleoperated demonstrations per task and frozen at inference; re-entry poses T ⋆ are extracted by the rule of Sec. IV-A. We evaluate four tasks—button, plate, shelf, and corn (80–100% solo success; Table II)—across 7 ordered pairs (5 cross-object, 2 same-object). Target instructions ℓB are issued at three transition points: mid-approach, at pre-grasp, or post-completion (5 trials/cell).
+a) Islands persist and Causeway bridges them: Bareswitch success collapses as the robot approaches the object— from 42.9% mid-approach to 14.3% and 17.1% at pre-grasp and post-completion (Table II)—due to policy stalling or continuing toward the source object (Fig. 6). Causeway elevates pooled success to 82–100%; every cell reaches at least 60%, and zero-success pairs recover to 80–100%.
+b) Held objects and chained switching: For same-object pairs with an already-held item, Causeway uses the closedgripper branch of SB(g) (Sec. IV-B) to route directly to the target placement segment—e.g., re-routing a held bowl from plate to shelf without put-down or re-grasp (Fig. 6a).
+
+Fig. 6: Real-robot chained switching (xArm, π0.5, fine-tuned then frozen): Top Row: Each instruction interrupts the previous task mid-execution; the final switch re-routes the held bowl from the plate to the shelf via the phase-conditioned target (closedgripper branch, Sec. IV-B); Bottom Row: Instructions issued after each task completes. Solid instruction chips mark the frame where a new instruction takes effect; insets show the bare switch failing from the same state. Quantitative pairwise results in Table II.
+
+Across chained task sequences, Causeway enables continuous language-driven redirection mid-execution or post-completion without resets, whereas bare switches fail.
+VII. CONCLUSION, LIMITATIONS, AND FUTURE WORK
+We characterize task islands—states from which a competent policy cannot begin a new task—and introduce Causeway, a training-free, inference-time method that applies a representation write by back-propagating through a frozen policy’s decoding during return motion. Across three VLA architectures on LIBERO-Goal, Causeway elevates bare-switch success from 3–26% to 47–65%, and transfers to LIBEROObject and a physical xArm. Causeway depends on taskrelative coordinates (ξ) and demonstration coverage, with performance degrading under unmodeled factors (such as large scene shifts or in-grasp dynamics) and requiring perarchitecture calibration. Future work will use these diagnostics to embed capability accessibility directly into policy training.
+REFERENCES
+[1] B. Liu, Y. Zhu, C. Gao, Y. Feng, Q. Liu, Y. Zhu, and P. Stone, “Libero: Benchmarking knowledge transfer for lifelong robot learning,” in Advances in Neural Information Processing Systems (NeurIPS), vol. 36, 2023, pp. 40 417–40 439.
+[2] A. Brohan, N. Brown, J. Carbajal et al., “Rt-2: Vision-language-action models transfer web knowledge to robotic control,” arXiv:2307.15818, 2023.
+[3] M. J. Kim, K. Pertsch, S. Karamcheti et al., “Openvla: An open-source vision-language-action model,” arXiv:2406.09246, 2024.
+[4] K. Black, N. Brown, D. Driess et al., “π0: A vision-language-action flow model for general robot control,” arXiv:2410.24164, 2024.
+[5] NVIDIA, J. Bjorck et al., “GR00T N1: An open foundation model for generalist humanoid robots,” arXiv:2503.14734, 2025.
+[6] Z. Chen, A. Tian, L. Wang, B. Joffe, Y. C. Lin, Y. Chen, S. Karamcheti, and D. Xu, “Resteer: Quantifying and refining the steerability of multitask robot policies,” 2026.
+[7] M. Li, Z. Zhao, Z. Che, F. Liao, K. Wu, Z. Xu, P. Ren, Z. Jin, N. Liu, and J. Tang, “Switchvla: Execution-aware task switching for visionlanguage-action models,” 2025.
+
+[8] Octo Model Team, D. Ghosh, H. Walke et al., “Octo: An open-source generalist robot policy,” arXiv:2405.12213, 2024.
+[9] W. Liufu, X. Guo, R. Chen et al., “Repo-vla: Recovery-driven policy optimization for vision-language-action models,” arXiv:2605.09410, 2026.
+[10] D. M. S. Tan, S. Shailesh, S. Iyer, W. W. J. Teo, Y. Ju, Q. Gu, and G. Sartoretti, “Rl2-vla: Adaptive rl latent compositional steering with test-time scaling for vision-language-action models,” 2026.
+[11] M. Ahn, A. Brohan, N. Brown et al., “Do as i can, not as i say: Grounding language in robotic affordances,” in Conference on Robot Learning, 2022.
+[12] L. X. Shi, Z. Hu, T. Z. Zhao et al., “Yell at your robot: Improving onthe-fly from language corrections,” in Robotics: Science and Systems, 2024.
+[13] R. S. Sutton, D. Precup, and S. Singh, “Between mdps and semi-mdps: A framework for temporal abstraction in reinforcement learning,” Artificial Intelligence, vol. 112, no. 1-2, pp. 181–211, 1999.
+[14] G. Konidaris and A. Barto, “Skill discovery in continuous reinforcement learning domains using skill chaining,” in Advances in Neural Information Processing Systems, 2009.
+[15] J. Ho and T. Salimans, “Classifier-free diffusion guidance,” arXiv:2207.12598, 2022.
+[16] X. L. Li, A. Holtzman, D. Fried et al., “Contrastive decoding: Openended text generation as optimization,” in Association for Computational Linguistics, 2023.
+[17] S. Huang, J. Shao, K. Wang et al., “Breaking lock-in: Preserving steerability under low-data vla post-training,” arXiv:2604.23121, 2026.
+[18] A. M. Turner, L. Thiergart, D. Udell et al., “Activation addition: Steering language models without optimization,” arXiv:2308.10248, 2023.
+[19] N. Rimsky, N. Gabrieli, J. Schulz et al., “Steering llama 2 via contrastive activation addition,” in Association for Computational Linguistics (ACL), 2024.
+[20] A. Zou, L. Phan, S. Chen et al., “Representation engineering: A topdown approach to ai transparency,” arXiv:2310.01405, 2023.
+[21] F. Chaumette and S. Hutchinson, “Visual servo control, part i: Basic approaches,” IEEE Robotics & Automation Magazine, vol. 13, no. 4, pp. 82–90, 2006.
+[22] S. Vats, D. K. Jha, M. Likhachev, O. Kroemer, and D. Romeres, “Recoverychaining: Learning local recovery policies for robust manipulation,” arXiv:2410.13979, 2025.
+[23] M. J. Kim, C. Finn, and P. Liang, “Fine-tuning vision-language-action models: Optimizing speed and success,” arXiv:2502.19645, 2025.
+[24] Physical Intelligence, K. Black et al., “π0.5: A vision-language-action model with open-world generalization,” arXiv:2504.16054, 2025.
+
+

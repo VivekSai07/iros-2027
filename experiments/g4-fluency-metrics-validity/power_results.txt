@@ -1,0 +1,40 @@
+== Paired t-test (within-subject condition contrast) ==
+d_z=0.3: n needed=90 (power=0.804)
+d_z=0.5: n needed=34 (power=0.808)
+d_z=0.8: n needed=15 (power=0.821)
+d_z=1.0: n needed=10 (power=0.803)
+n=18: power at d_z=0.5 -> 0.516; at d_z=0.8 -> 0.892
+n=24: power at d_z=0.5 -> 0.650; at d_z=0.8 -> 0.963
+n=39: power at d_z=0.5 -> 0.861; at d_z=0.8 -> 0.998
+minimum detectable d_z (80% power):
+  n=18: d_z >= 0.70
+  n=24: d_z >= 0.60
+  n=39: d_z >= 0.46
+
+== Between-participant Pearson correlation (one value per participant) ==
+r=0.12: n needed=543
+r=0.30: n needed=85
+r=0.50: n needed=30
+n=18: power r=0.3 -> 0.224; r=0.5 -> 0.567
+n=24: power r=0.3 -> 0.294; r=0.5 -> 0.711
+n=39: power r=0.3 -> 0.459; r=0.5 -> 0.909
+
+== Simulated repeated-measures correlation (trial-level objective metric vs per-trial rating) ==
+N=18, trials/participant=4, within-r=0.2: power=0.329
+N=18, trials/participant=4, within-r=0.3: power=0.614
+N=18, trials/participant=8, within-r=0.2: power=0.615
+N=18, trials/participant=8, within-r=0.3: power=0.934
+N=18, trials/participant=16, within-r=0.2: power=0.914
+N=18, trials/participant=16, within-r=0.3: power=0.999
+N=24, trials/participant=4, within-r=0.2: power=0.403
+N=24, trials/participant=4, within-r=0.3: power=0.749
+N=24, trials/participant=8, within-r=0.2: power=0.725
+N=24, trials/participant=8, within-r=0.3: power=0.976
+N=24, trials/participant=16, within-r=0.2: power=0.971
+N=24, trials/participant=16, within-r=0.3: power=1.000
+N=39, trials/participant=4, within-r=0.2: power=0.612
+N=39, trials/participant=4, within-r=0.3: power=0.923
+N=39, trials/participant=8, within-r=0.2: power=0.909
+N=39, trials/participant=8, within-r=0.3: power=0.998
+N=39, trials/participant=16, within-r=0.2: power=0.998
+N=39, trials/participant=16, within-r=0.3: power=1.000

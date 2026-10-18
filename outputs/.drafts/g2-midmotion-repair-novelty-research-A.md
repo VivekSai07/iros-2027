@@ -1,0 +1,110 @@
+# G2 — Mid-motion chunk repair vs. mid-chunk *instruction* change: novelty check (Research-A)
+
+Date of check: 2026-10-18. Scope: the 10 assigned papers only.
+Question: does any method repair/update an in-flight action chunk of a VLA/ACT/flow/diffusion policy in response to a NEW language or speech instruction while the arm moves?
+
+Flags: **[V]** = verified from primary text (arXiv HTML/PDF full text or arXiv API metadata read in this session); **[S]** = secondary source (e.g., GitHub page via search result); **[U]** = unverified / inference.
+All 10 arXiv IDs were confirmed via the arXiv API (`export.arxiv.org/api/query?id_list=...`) → titles, authors, dates below are **[V]**.
+Method note: `alpha_ask_paper` / `alpha_get_paper` were not available in this session; primary text was read from `arxiv.org/html/<id>` and `arxiv.org/pdf/<id>` (full-text keyword search + targeted section reads). "No match" statements mean a case-insensitive search of the full text for the term returned nothing.
+
+---
+
+## Summary table
+
+| # | Title (arXiv ID, v1 date, org) | (1) What is repaired + mechanism | (2) Trigger; instruction change during execution evaluated/mentioned? | (3) Real robot / sim | (4) Base policies (SmolVLA? ACT?) | (5) Code | (6) Speech | (7) Key quantitative result |
+|---|---|---|---|---|---|---|---|---|
+| 1 | Training-Time Action Conditioning for Efficient RTC (2512.05964, 2025-12-05, Physical Intelligence) [V] | Next chunk is made consistent with the already-committed action prefix; delay is simulated at training time and the model conditions on the action prefix directly (replaces inference-time inpainting) [V] | Trigger = new observation + committed prefix (sensor/state). No language-change evaluation; "instruction" and "speech" have no match in full text [V] | Real: box building + espresso making with π0.6 (setup of π*0.6); Sim: dynamic Kinetix [V] | π0.6 (real); flow policies on Kinetix. SmolVLA cited only in related work; ACT not used [V] | Not stated [V] | No [V] | "averaging 108ms of end-to-end latency for training-time RTC (d≈5) and 135ms for inference-time RTC (d≈7)"; sim: better than inference-time RTC "at inference delays of 2 or higher" [V] |
+| 2 | Barrier-Constrained Guidance for Real-time Asynchronous VLA Execution — FreeBar (2610.14997, 2026-10-10, Renmin Univ. of China GSAI + Beijing Innovation Center of Humanoid Robotics; CoRL 2026) [V] | Newly generated chunk aligned to the committed execution stream via a CBF-inspired consistency constraint solved in closed form during flow generation; bound progressively tightened [V] | Trigger = observation/committed stream. Only generic mentions that VLAs/RoboCasa "follow language instructions"; no mid-execution instruction change [V] | Sim: Kinetix, RoboCasa (11 tasks). Real: TianGong humanoid (dual 7-DOF arms) conveyor-belt; Franka Emika whack-a-mole, 30 Hz, RTX 4090 [V] | GR00T, π0, π0.5. SmolVLA only cited; ACT not used [V] | https://github.com/NamelessCrew/FreeBar (stated in paper appendix) [V] | No [V] | Kinetix: "68.3% at d=4 compared to 61.4% for RTC"; abstract: "improves success rates over naive asynchronous execution by 10%–15% on average", "decreasing inference latency per action chunk over 45% than RTC" [V] |
+| 3 | Reactive Real-Time Flow Policies via Asynchronous Distribution Alignment (2609.36540, 2026-09-29, Purdue CS + Oxford Robotics Institute) [V] | (a) Recursive Flow-Field Distillation trains the async policy on the VLA's flow; (b) Propose–Resolve prepares K candidate continuations and selects one at handoff using the latest observation [V] | Trigger = latest observation at handoff. "instruction", "speech", "prompt" have no match in full text [V] | Sim only: RoboMimic (ToolHang, Square, Transport) + LIBERO [V] | **SmolVLA** (lerobot/smolvla_base fine-tuned; HuggingFaceVLA/smolvla_libero) [V]. ACT not used [V] | Not stated [V] | No [V] | "matches the original VLA's success on LIBERO and retains about 80% of its success on RoboMimic, about 30 percentage points more than existing asynchronous methods"; resolution "12.0 ms on average (12.3 ms at p99)" on RTX 4090 [V] |
+| 4 | RAVEL: Asynchronous Rolling Inference for Flow-Based VLAs (2609.34170, 2026-09-28, Zhejiang Univ. + Nanyang Technological Univ.) [V] | Rolling buffer of partially denoised future actions: near-term action released after one denoise step, not-yet-executed actions keep being refined; VLM encoding decoupled (uses "latest available VLM context"), Fast Observation Pathway injects current obs into action expert [V] | Trigger = current observation (FOP) + asynchronously refreshed VLM context (which includes instruction ℓ). Instruction treated as fixed: "All methods use the same task configurations, environment seeds, and language instructions." No mid-execution instruction change [V] | Sim: LIBERO, RoboTwin 2.0, Dynamic Object Manipulation. Real: UFACTORY xArm 7 table-tennis return + tennis-ball grasping, RTX 5090 [V] | π0.5, X-VLA. SmolVLA only cited; ACT not used [V] | Not stated in paper; none found in search [V/U] | No [V] | Table tennis: "90% return success rate … compared with 25% for both FASTER and VLASH"; "median observation age of 121.76 ms" [V] |
+| 5 | ChunkFlow: Towards Continuity-Consistent Chunked Policy Learning (2607.12992, 2026-07-14, Xi'an Jiaotong Univ. + Jiangsu Cytoderm Intelligent Technology) [V] | Each chunk split into frozen / editable / future zones; deterministic overlap blending at execution; seam + 1st/2nd-order continuity losses, history corruption, scheduled sampling, AWAC fine-tuning [V] | Trigger = observation + executed-action history. Policy is π(o_t, h, l) with instruction l fixed per task; "instruction-conditioned settings"; no mid-chunk instruction change [V]. (CALVIN evaluation uses chained instructions; whether switches occur only at subtask boundaries is not described in paper [U]) | Sim: CALVIN, LIBERO(-Long). Real: self-developed 6-DoF collaborative arm (Cytoderm), Cloth Strip Grasping + Block Insertion [V] | Backbone not identified in text read ("seam-aware chunked execution layer beneath the VLA encoder") [V/U]. SmolVLA and ACT: no match [V] | Project page https://cytoderm-ai.github.io/chunkflow given in paper, returned HTTP 404 on 2026-10-18; code not stated [V] | No [V] | "average sequence length of 4.30 on CALVIN, 93.4% success rate on LIBERO, 4.43 ms amortized reasoning latency, and 9/10 successes on the real-robot tasks" [V] |
+| 6 | FASTER: Rethinking Real-Time Flow VLAs (2603.19199, 2026-03-19, v3 2026-05-16, Univ. of Hong Kong + ACE Robotics) [V] | Horizon-Aware Schedule: per-action denoising timesteps so near-term actions finish in one step; streaming client-server dispatch + early stopping; uses training-time action-prefix conditioning [V] | Trigger = environmental change via new observation (reaction time / TTFA). Fixed per-task instructions listed (e.g., "Hit the table tennis ball to the opponent."); no mid-execution instruction change [V] | Real: AgileX Cobot Magic, 6-DoF Piper arms (Table Tennis, Pick Beverage, Fold Towel). Sim: LIBERO, CALVIN, Kinetix [V] | π0.5, X-VLA. SmolVLA only cited; ACT not used [V] | https://github.com/innovator-zero/FASTER (README: "Code released" Apr 30 2026) [S]; project page in paper returned 404 [V] | No [V] | X-VLA: "achieving a 3× boost in TTFA on RTX 4060"; reaction-time upper bound "111.5ms vs. 113.7ms on RTX 4090, and 329.2ms vs. 399.5ms on RTX 4060" [V] |
+| 7 | Reflex: Real-Time VLA Control through Streaming Inference (2607.14695, 2026-07-16, Beijing Univ. of Posts and Telecommunications; ICML 2026) [V] | Not a chunk-repair method per se: streaming inference with partitioned KV cache (static / sliding / dynamic), AdaRMSNorm, async vision/action pipeline, future-state prediction module [V] | Trigger = new visual frames (sliding window). **Instruction explicitly pinned**: "The Static Prefix contains system instructions ℓ1:L that defines the task; these are computed once and permanently pinned in the KV-cache." No instruction change evaluated [V] | Sim only: LIBERO, Kinetix (RTX 4090; also RTX 3090) [V] | Pi0.5, Pi0, **SmolVLA** (Appendix D.7, 500M) [V]. ACT not used [V] | https://github.com/9yc/Reflex (stated in paper) [V] | No [V] | "2.58× inference speedup and 50Hz stable streaming, reducing reaction latency by up to 54%"; SmolVLA "consistent 2.29× speedup" [V] |
+| 8 | Action-Prior Denoising for Smooth RTC — Soft RTC (2605.25537, 2026-05-25, ROKAE (Shandong) Robot Group + UCAS + HKUST(GZ)) [V] | Training-time RTC with soft overlap: overlap tokens corrupted from partially denoised states; at inference, previous chunk injected as prior via token-wise blending (committed prefix / soft-editable overlap / free tail) [V] | Trigger = previous chunk + new observation. Single fixed natural-language prompt on robot ("Place 2 large blue metal parts → blue box, one by one. Then place 2 small silver metal parts → gray box."); no instruction change [V] | Sim: 12 large Kinetix levels. Real: preliminary single-arm four-object sorting, "LeRobot/OpenPI runtime", 10 trials/method [V] | Released RTC Kinetix flow checkpoints; real-robot model not named in text read [V/U]. ACT mentioned only in related work; SmolVLA not mentioned [V] | Not stated [V] | No [V] | "0.809 vs. 0.815" solve rate (short soft window vs hard RTC); medium window reduces high-delay "action delta and jerk by 9.1% and 9.6%"; real: Base 6/10, Hard RTC 9/10, Soft RTC 8/10 successes [V] |
+| 9 | VLASH: Real-Time VLAs via Future-State-Aware Asynchronous Inference (2512.01031, 2025-11-30, v2 2026-07-26, MIT / NVIDIA / Tsinghua / UC Berkeley / Caltech / UCSD) [V] | No chunk inpainting: policy conditions on robot state rolled forward through the previous chunk to execution time; efficient multi-offset training; action quantization [V] | Trigger = state/observation. Language appears only as prompt tokens in observation; no instruction change [V] | Sim: Kinetix, LIBERO. Real: Galaxea R1 Lite + **LeRobot SO-101**; ping-pong, whack-a-mole, pick&place, stacking, sorting [V] | π0.5, GR00T N1.6 (real); π0.5 + **SmolVLA** on LIBERO [V]. ACT only cited [V] | https://github.com/mit-han-lab/vlash (in abstract) [V] | No [V] | "reduces reaction latency by up to 11.8×"; ping-pong "55% single-return hit rate", whack-a-mole "average score of 28.8"; SmolVLA at delay 3 "79.1% SR" vs sync "79.0%" [V] |
+| 10 | REACT: Rolling Denoising and Dual Decoupling (2610.12007, 2026-10-08, SJTU / PrimeBot / Zhejiang Univ. / ShanghaiTech / NUS; CoRL 2026 spotlight) [V] | Persistent action buffer with staggered flow timesteps: each step denoises full horizon with latest observation, executes cleanest block, shifts partially refined future blocks, appends noise — i.e., not-yet-executed actions are repeatedly refined in flight; dual decoupling with latest-ready VLM embedding cache [V] | Trigger = observations (scene change, e.g., bowl moved; rice level; screen turning green). VLM "fuses [images] with language instructions"; no instruction change evaluated [V] | Sim: RoboTwin 2.0 (7 tasks). Real: ARX X5 and Franka Research 3 (bimanual); Pour Rice, Reaction Game [V] | π0.5 only ("we validate REACT only on … π0.5"). SmolVLA only cited; ACT not used [V] | Project page https://react-vla.github.io (arXiv comment); no code link found on page or in paper [V] | No [V] | Real-world success "from 17.7% to 64.8%" vs Async+RTC; Reaction Game "734 ms" vs Async+RTC "747 ms" vs human teleop "705 ms" [V] |
+
+---
+
+## Per-paper notes
+
+**1. Training-time RTC (2512.05964).** Org from PDF title block: "Physical Intelligence" [V]. Fine-tuned "for 8,000 gradient steps with a batch size of 512"; delays sampled "uniformly between 0 and 10 during training, which supports a maximum latency of 200ms on a 50Hz robot" [V]. Limitation stated: training-time RTC "only supports conditioning on a 'hard' action prefix" [V]. Repair target is the *next* chunk's consistency with committed actions, not semantics.
+
+**2. FreeBar (2610.14997).** Training-free plug-in; closed-form λ projection added to the flow velocity at each step [V]. Whack-a-Mole on Franka "introduces abrupt target switching" — the switch is a *visual* target, not a language instruction [V].
+
+**3. Reactive RTF / RFD + Propose–Resolve (2609.36540).** Directly relevant for SmolVLA users: all experiments are SmolVLA, H=50, ten Euler steps, s=10 (RoboMimic) / s=25 (LIBERO) [V]. Proposal of K=32 alternatives "takes 90.8 ms on average" on RTX 4090 [V]. Sim only. Selection is driven by the handoff observation o⁺; the instruction is not part of the resolve criterion described [V/U — inferred from absence of "instruction" in full text].
+
+**4. RAVEL (2609.34170).** Closest architectural analogue to "in-flight repair": future actions in the rolling buffer are re-denoised while earlier ones execute, and the VLM context c = E(o, s, ℓ) is refreshed asynchronously [V]. *Inference [U]:* because ℓ enters only via the asynchronously refreshed VLM context, a new instruction would in principle propagate into the partially denoised buffer at the next context update — but the paper neither tests nor discusses this, and the FOP pathway carries only visual/proprioceptive features [V].
+
+**5. ChunkFlow (2607.12992).** "Editable" zone is the repaired region; repair is deterministic blending + training regularizers, no new-instruction pathway [V]. Real-robot hardware is the authors' Cytoderm platform [V].
+
+**6. FASTER (2603.19199).** Reaction is defined w.r.t. "environmental changes" [V]; all real tasks have a single fixed instruction [V]. PDF exceeded the 20 MB fetch limit; all reads were from arXiv HTML v3 [V].
+
+**7. Reflex (2607.14695).** Important negative evidence: the design *assumes* a static instruction — instruction tokens are "computed once and permanently pinned in the KV-cache" [V]. *Inference [U]:* supporting a mid-run instruction change would require invalidating/recomputing the static prefix, which the paper does not address.
+
+**8. Soft RTC (2605.25537).** Explicitly frames overlap tokens as "editable but should still stay close to the previous plan" [V]. Real-robot study is "small preliminary" [V]; the base model used on the robot is not named in the text read (only "LeRobot/OpenPI runtime") [U].
+
+**9. VLASH (2512.01031).** Only paper in set with an **SO-101** real robot (with π0.5 / GR00T N1.6, not SmolVLA on hardware per text read) [V]; SmolVLA appears in LIBERO sim [V]. Notes that "SmolVLA [5] implements naive asynchronous inference by directly switching to new action chunks" [V].
+
+**10. REACT (2610.12007).** Strongest "in-flight refinement" mechanism: "each executed action block is refined across multiple recent observations before deployment" [V]. Scene perturbation (bowl position "suddenly changed") is the tested trigger [V]. Limitation: validated only on π0.5 and each policy is trained for one fixed rolling schedule [V].
+
+---
+
+## Evidence table
+
+| # | Source | URL | Key claim | Type | Confidence |
+|---|---|---|---|---|---|
+| 1 | Black, Ren, Equi, Levine — Training-Time Action Conditioning for Efficient RTC | https://arxiv.org/abs/2512.05964 | Prefix conditioning at train time; π0.6 real tasks; no instruction-change eval | primary | high |
+| 2 | Yu et al. — FreeBar (Barrier-Constrained Guidance) | https://arxiv.org/abs/2610.14997 | Closed-form CBF chunk alignment; GR00T/π0/π0.5; code NamelessCrew/FreeBar | primary | high |
+| 3 | Zoellner et al. — Reactive Real-Time Flow Policies via Async Distribution Alignment | https://arxiv.org/abs/2609.36540 | RFD + Propose–Resolve on SmolVLA; sim only | primary | high |
+| 4 | Chen et al. — RAVEL | https://arxiv.org/abs/2609.34170 | Rolling buffer + async VLM context + FOP; xArm7; fixed instructions | primary | high |
+| 5 | Yang et al. — ChunkFlow | https://arxiv.org/abs/2607.12992 | Frozen/editable/future zones + blending; CALVIN/LIBERO/real arm | primary | high (backbone: low) |
+| 6 | Lu et al. — FASTER | https://arxiv.org/abs/2603.19199 | Horizon-Aware Schedule; Piper arms; fixed instructions | primary | high |
+| 7 | Guo & Liu — Reflex | https://arxiv.org/abs/2607.14695 | Instruction pinned in static KV prefix; SmolVLA appendix; sim only | primary | high |
+| 8 | Liu et al. — Soft RTC (Action-Prior Denoising) | https://arxiv.org/abs/2605.25537 | Soft overlap prior; Kinetix + preliminary real sorting | primary | high |
+| 9 | Tang et al. — VLASH | https://arxiv.org/abs/2512.01031 | Future-state rollforward; SO-101 + R1 Lite; SmolVLA in LIBERO | primary | high |
+| 10 | Xiong et al. — REACT | https://arxiv.org/abs/2610.12007 | Rolling denoising + dual decoupling; π0.5 only; ARX X5/Franka R3 | primary | high |
+| 11 | innovator-zero/FASTER GitHub repo (via search result) | https://github.com/innovator-zero/FASTER | Code released Apr 30 2026, Apache-2.0 | secondary | medium |
+| 12 | REACT project page | https://react-vla.github.io | Method description; no code link found | primary (project) | medium |
+| 13 | Policy-Aligned Predictive Verification for Adaptive VLA Action-Chunk Execution (out-of-scope lead, surfaced by search, NOT read) | https://pdfs.assets.alphaxiv.org/2610.21434v1.pdf | Snippet only: adaptive prefix acceptance conditioned on obs + instruction ℓ; ID 2610.21434 not tool-confirmed | unread lead | low [U] |
+
+---
+
+## Findings
+
+- **What gets "repaired."** Every paper repairs chunk *continuity/freshness* with respect to *robot state or visual observation*: committed-prefix conditioning [1][6][8], closed-form constraint guidance [2], candidate selection at handoff [3], blending of editable overlap zones [5], future-state conditioning [9], or rolling re-denoising of not-yet-executed actions [4][10]. Reflex [7] is an inference-systems paper, not a repair method.
+- **Trigger type.** In all 10, the trigger is sensor/observation (moving objects, ball, switching visual target, rice level, screen colour) or inference delay [1]–[10]. None uses a text-instruction change as trigger; none uses speech (no match for "speech"/"voice"/"audio" in any full text checked) [1]–[10].
+- **Language handling is static.** Instructions are fixed per episode: RAVEL states all methods use "the same … language instructions" [4]; FASTER lists one instruction per task [6]; Soft RTC uses one prompt [8]; Reflex pins the instruction in the KV cache "computed once" [7].
+- **SmolVLA / ACT.** SmolVLA is used as a base policy in [3] (all experiments), [7] (appendix), [9] (LIBERO sim). ACT is not used as a base policy in any of the 10 (cited only in [8] related work and [9] references).
+- **SO-101.** Only VLASH [9] uses LeRobot SO-101 hardware (with π0.5 / GR00T N1.6 per text read).
+
+## Does ANY handle an instruction change mid-chunk?
+
+**No.** Across the 10 papers, none evaluates, demonstrates, or explicitly discusses repairing an in-flight action chunk in response to a *new language or speech instruction* while the arm moves [1]–[10] [V]. All repair/refresh triggers are observation- or delay-driven, instructions are held fixed per episode, and no paper mentions speech. The two rolling-buffer methods — RAVEL [4] and REACT [10] — are the nearest architectural substrates: they continually re-denoise not-yet-executed actions while refreshing a VLM context that encodes the instruction, so a new instruction *could* in principle flow into the in-flight buffer at the next context update. That is my inference [U]; neither paper tests it. Reflex [7] is evidence *against* the assumption that current streaming VLA systems support it, because it hard-pins the instruction prefix. The "language-triggered mid-chunk repair (and speech-triggered repair) on SmolVLA/ACT-class policies" gap therefore looks open *within this 10-paper set*. It is not a field-wide novelty claim: adjacent work outside this set (e.g., [13]) was not read.
+
+---
+
+## Blocked sources
+- None blocked by robots.txt, paywall, or login.
+- Unavailable (not blocked): ChunkFlow project page `https://cytoderm-ai.github.io/chunkflow` and FASTER project page `https://innovator-zero.github.io/FASTER` returned HTTP 404 on 2026-10-18. FASTER PDF (`arxiv.org/pdf/2603.19199v3`) exceeded the 20 MB fetch limit, so HTML v3 was used instead.
+- Tooling: `alpha_ask_paper`/`alpha_get_paper` were not exposed in this session. The default web-search provider was not configured, so `parallel-mcp` was used.
+
+## Coverage Status
+- Done (all 10): arXiv ID/metadata confirmed; full text keyword-searched (instruction/speech/SmolVLA/ACT/github/real-robot) and key sections read.
+- Uncertain: ChunkFlow backbone model; Soft RTC real-robot base model; RAVEL, Training-time RTC, Reactive-RTF, Soft RTC code availability (not stated in paper; GitHub search only done for FASTER and RAVEL).
+- Not done: field-wide search for language-triggered mid-chunk repair beyond these 10 (out of assigned scope). Lead [13] noted, not read.
+
+## Sources
+1. Black, Ren, Equi, Levine — Training-Time Action Conditioning for Efficient Real-Time Chunking — https://arxiv.org/abs/2512.05964 (HTML: https://arxiv.org/html/2512.05964v2)
+2. Yu et al. — Barrier-Constrained Guidance For Real-time Asynchronous VLA Execution — https://arxiv.org/abs/2610.14997
+3. Zoellner, O'Mahoney, Havoutis, Paleja — Reactive Real-Time Flow Policies via Asynchronous Distribution Alignment — https://arxiv.org/abs/2609.36540
+4. Chen et al. — RAVEL — https://arxiv.org/abs/2609.34170
+5. Yang et al. — ChunkFlow — https://arxiv.org/abs/2607.12992
+6. Lu et al. — FASTER: Rethinking Real-Time Flow VLAs — https://arxiv.org/abs/2603.19199
+7. Guo, Liu — Reflex: Real-Time VLA Control through Streaming Inference — https://arxiv.org/abs/2607.14695
+8. Liu et al. — Action-Prior Denoising for Smooth Real-Time Chunking — https://arxiv.org/abs/2605.25537
+9. Tang et al. — VLASH — https://arxiv.org/abs/2512.01031
+10. Xiong et al. — REACT — https://arxiv.org/abs/2610.12007
+11. innovator-zero/FASTER — https://github.com/innovator-zero/FASTER
+12. REACT project page — https://react-vla.github.io
+13. (Unread lead) Policy-Aligned Predictive Verification for Adaptive VLA Action-Chunk Execution — https://pdfs.assets.alphaxiv.org/2610.21434v1.pdf
