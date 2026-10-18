@@ -1,6 +1,6 @@
 # IROS 27 research project — agent instructions
 
-Start with [00-README.md](./00-README.md) and follow its reading order. This folder is the source of truth; nothing depends on chat history.
+Start with [00-README.md](./00-README.md) and follow its reading order. This repo is the source of truth; nothing depends on chat history.
 
 Rules:
 - `01-decision-log.md` is append-only (Q/A style). Supersede old entries, never edit them.

@@ -6,7 +6,6 @@ Written 2026-10-18 from the Claude chat session that started 2026-10-08. The cha
 - Team of 3 (robotics), contact.sparclab@gmail.com, Europe/Berlin. SO-101 arm(s), one shared 48 GB RTX 6000 Ada, others 8 GB GPUs. Strong in Isaac Sim/Lab, Newton, MuJoCo.
 - Target: IROS 2027 (Florence, 26 Sep–1 Oct 2027), deadline 1 Mar 2027. Fallback ICRA 2028 (~16 Aug 2027).
 - Wants: unique, understandable, application paper (else systematic study), best-paper aspiration, no copying of existing papers.
-- The earlier policy comparison (ACT/SmolVLA/etc. on `Rakeshdharan56/pick_place_marker_bowl`, repo `zero-shot-SO101`) was a warm-up, not paper content. That repo's `research-plan/` + decision-log convention is mirrored here.
 
 ## 2. Timeline of the session
 | Date | Event |

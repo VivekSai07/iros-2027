@@ -4,10 +4,10 @@ Convention: chronological, Q/A format. Supersede earlier entries by adding a new
 
 ---
 ## D-001 — 2026-10-08 — Goal and constraints
-**Q:** What are we trying to do? **A:** Publish at the next IROS (IROS 2027). Three-person robotics team, SO-101 hardware, imitation-learning experience from the earlier warm-up.
+**Q:** What are we trying to do? **A:** Publish at the next IROS (IROS 2027). Three-person robotics team, SO-101 hardware, prior imitation-learning experience.
 
-## D-002 — 2026-10-08 — Warm-up scope
-**Q:** Is the policy comparison (ACT/SmolVLA/etc.) part of the paper? **A:** No. It was only a warm-up. The new research must be related to who we are and what hardware we have.
+## D-002 — 2026-10-08 — Prior work scope
+**Q:** Is earlier policy-comparison work part of the paper? **A:** No. The new research must be related to who we are and what hardware we have.
 
 ## D-003 — 2026-10-08 — Paper type, compute, novelty bar
 **Q:** Paper type? **A:** Application paper preferred; otherwise a systematic study.
@@ -44,7 +44,7 @@ Recommendation (not yet accepted by team): **H1-benchmark+method** — a time-an
 
 ---
 ## D-012 — 2026-10-18 — Folder rename and Feynman adoption
-**Q:** Where does this work live now? **A:** Folder renamed `iros27-research/` -> `literature-review-iros27-sahil/` in repo `learning-methods-so101`, branch `research/literature-review`. Older entries (D-005, D-011) and `09-session-handover.md` still say `iros27-research/`; they are historical and not edited. Commits are authored by the human (`sahilrajpurkar03`), never an agent.
+**Q:** Where does this work live now? **A:** In its own folder under version control. Older entries (D-005, D-011) and `09-session-handover.md` still say `iros27-research/`; they are historical and not edited. Commits are authored by the human (`sahilrajpurkar03`), never an agent.
 **Q:** Feynman? **A:** Installed (v0.5.49, npm global), Anthropic model, alphaXiv signed in. One-shot runs via `feynman --prompt="/lit ..."` from this folder write to `outputs/`. Running six in parallel hit an Anthropic rate limit (HTTP 429): run at most 1-2 at a time and watch usage (user asked to pause and ask at 75% weekly).
 
 ## D-013 — 2026-10-18 — Iteration 6-7 findings (supersede gap statuses in D-009 where they differ)
@@ -66,3 +66,6 @@ User supplied the RIAP PDF; notes in `inputs/riap-notes.md`. It is a NeurIPS 202
 
 ## D-017 — 2026-10-18 — RTCA workshop accepted list read (resolves the blocked item in G1 §7 Q3)
 User supplied the 37 accepted posters (`inputs/rtca-accepted.md`; the page may continue beyond what was pasted [U]). Triage from titles only: no paper on robot manipulation with spoken interruption; RIAP (read in full, D-016) and The Puppet Test (nonverbal HRI) are the only robot-related ones. Titles to abstract-check later: Continue/Adapt/Yield (already G1's Duplex Cue), Cancelled Tools / Stopping Superseded Tool Calls (software analogs of residual effects), Dual-State KV Forking, From Text to Voice (interruption recovery), Hear2Act, Multi-Party Backchannel Prediction. G1 scoop risk from this workshop is lowered; overall G1 scoop risk stays HIGH because of the 11 other adjacent papers (Sep-Oct 2026).
+
+## D-018 — 2026-10-18 — Moved to a standalone repository (`iros27-hri`)
+**Q:** Why a new repo? **A:** IROS 2027 is a serious effort and must not share a repository with unrelated earlier work. The folder was extracted with its 5 commits and authorship preserved; files now live at the repo root (older entries that mention a folder path are historical). References to the earlier project were removed. No remote yet; local only. Repo name is provisional.

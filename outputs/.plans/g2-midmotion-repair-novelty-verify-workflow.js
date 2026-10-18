@@ -1,4 +1,4 @@
-const base = "Working dir: D:/Git/learning-methods-so101/literature-review-iros27-sahil. Date 2026-10-18. Do NOT edit the draft or any other existing file; write ONLY your bound output file. Never write secrets. If a source is blocked (robots.txt, paywall, login) record it, do not work around it. Supporting evidence files: outputs/.drafts/g2-midmotion-repair-novelty-research-A.md, -research-B.md, -research-C.md, -research-D.md and notes/g2-midmotion-repair-novelty-lead-notes.md. ";
+const base = "Working dir: the repository root. Date 2026-10-18. Do NOT edit the draft or any other existing file; write ONLY your bound output file. Never write secrets. If a source is blocked (robots.txt, paywall, login) record it, do not work around it. Supporting evidence files: outputs/.drafts/g2-midmotion-repair-novelty-research-A.md, -research-B.md, -research-C.md, -research-D.md and notes/g2-midmotion-repair-novelty-lead-notes.md. ";
 
 const v = await runs.run("verify", {
   agent: "verifier",

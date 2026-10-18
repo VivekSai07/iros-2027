@@ -3,7 +3,7 @@
 Team: 3 people, robotics background (contact.sparclab@gmail.com, Europe/Berlin).
 Goal: a unique, understandable, best-paper-aspiring **application paper** (else systematic study) at **IROS 2027** (Florence, 26 Sep–1 Oct 2027; paper deadline **1 March 2027**, hard).
 Hardware/compute: SO-101 arm(s); one shared 48 GB RTX 6000 Ada; everyone else has 8 GB GPUs. Strong sim skills (Isaac Sim/Lab, Newton, MuJoCo).
-Earlier policy comparison (ACT, SmolVLA, Multitask DiT, FastWAM, X-VLA, VLA-JEPA on `Rakeshdharan56/pick_place_marker_bowl`) was a warm-up only — **not needed for the paper**, but the stack (LeRobot, SO-101 rollout) is reusable.
+Reusable stack: LeRobot with SO-101 rollout.
 
 ## Reading order for an agent
 1. `00-README.md` (this file)
@@ -22,7 +22,7 @@ Earlier policy comparison (ACT, SmolVLA, Multitask DiT, FastWAM, X-VLA, VLA-JEPA
 ## Rules (from the user)
 - Use proper sources/searches. **If a site cannot be accessed, do not skip or work around it — ask the user for access / a manual check** (e.g. ELLSA GitHub returned ROBOTS_DISALLOWED; user must check release status).
 - Every claim in the literature map carries a status: `[V]` verified from the primary page/abstract, `[S]` secondary source only, `[U]` unverified.
-- Log decisions in `01-decision-log.md` (append-only, Q/A style, mirrors the zero-shot-SO101 repo convention).
+- Log decisions in `01-decision-log.md` (append-only, Q/A style).
 - Never write pasted tokens/secrets into files.
 
 ## Status (2026-10-13)
