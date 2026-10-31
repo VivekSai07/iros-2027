@@ -38,3 +38,6 @@
 - Found and documented Understand-Anything's worktree-to-primary graph redirect [V pinned skill]; repository routing explicitly disables it. Graph generation itself was not run.
 - npm audit reported 10 affected package entries, including 3 high severity [V audit output]; Feynman/REA activation is gated for human review rather than forced dependency changes. No credentials were read or stored. No native analysis provider was installed.
 - Setup and verification details: `../logs/2026-10-31-repository-setup.md`, `../tools/README.md`, and `../docs/plans/2026-10-31-repository.md`.
+
+## Pass 10 — 2026-10-31 — Tool activation
+- Infrastructure only; no scientific search or change to conclusions. Feynman and REA runtimes activated under the D-020 exception; REA MCP handshake verified (229 tools); Feynman unauthenticated. Reverse-engineering catalog removed. Details: `../logs/2026-10-31-repository-setup.md`.

@@ -34,3 +34,13 @@ python3 tools/bootstrap.py check
 ```
 
 The last command intentionally returns nonzero while optional CLI runtimes are gated. Open `knowledge/` as the Obsidian vault; use `knowledge/index.md` for current research state. Merge and push remain unapproved and must not be performed by the setup task.
+
+## Addendum: Tool Activation And Merge
+
+The maintainer asked to set up Feynman and REA, remove the reverse-engineering catalog, and merge locally (D-020). Superseding the gated status above:
+
+- `bootstrap.py runtime --accept-upstream-risk` installed local Node 24.22.1 and the locked packages; npm audit still reports 7 moderate / 3 high affected entries. `bootstrap.py check` reports all components ready.
+- Feynman 0.5.61: `--version` and `status` ran through the wrapper; Pi runtime ready, telemetry off, no model authenticated (maintainer runs `feynman setup`). The wrapper now runs admin commands without a job; research commands still require one (tests added).
+- REA 6.8.0: stdio MCP handshake returned 229 tools. Claude discovers the tracked `.mcp.json` server as pending approval. VS Code config tracked; its discovery not exercised here. Codex ignored a project `.codex/config.toml` even with temporary trust, so that file was dropped and a per-user `codex mcp add` command documented. No native provider installed; no target analyzed.
+- Catalog pin, local checkout, and references removed.
+- Merge into main approved by the maintainer; performed locally with `--no-ff`. Push is left to the maintainer.

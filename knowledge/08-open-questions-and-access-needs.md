@@ -30,3 +30,5 @@
 14. **Distribution terms:** select appropriate code/data/manuscript licenses before public release, preserving third-party terms and participant permissions. No project-wide license was assumed during setup.
 
 These do not change the still-open research-direction and ownership questions above. Root `../README.md` and `index.md` supersede old navigation instructions.
+
+Update 2026-10-31: item 12 resolved by D-020 (bounded exception accepted; Feynman/REA activated). Open for each teammate: authenticate a Feynman model provider; install a native analysis provider only if a specific REA question needs one.

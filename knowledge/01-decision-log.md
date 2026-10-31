@@ -85,3 +85,12 @@ User supplied the 37 accepted posters (`inputs/rtca-accepted.md`; the page may c
 **Q:** How are the requested tools included? **A:** Versioned integration code, source pins, dependency lock, and workflow routes are tracked. Pinned source checkouts are local under `.tools/`; heavy payloads and credentials are not tracked. claude-obsidian's vault foundation is initialized and checked. Understand-Anything and the reference catalog are checked out; no graph or native analysis was run. Feynman and REA package versions are pinned, but activation is gated after npm reported upstream dependency advisories (7 moderate, 3 high affected package entries). Human risk review or a reviewed upstream update is required before activation. No paid research or authentication was performed. See `../tools/README.md` for exact status and primary upstream links.
 
 **Q:** What remains a team decision? **A:** The RQ/method, individual task ownership, shared artifact backend, dataset/participant permissions, experiment budgets, repository release license, and conference requirements. Setup does not silently decide them.
+
+## D-020 — 2026-10-31 — Feynman and REA activated; reverse-engineering catalog removed
+**Q:** Should the gated Feynman/REA runtimes be set up despite the npm advisories (7 moderate, 3 high affected entries, D-019)? **A:** Yes; the maintainer asked for both to be set up. This is a bounded exception for the pinned versions (Feynman 0.5.61, REA 6.8.0): public papers, public repositories, and team-owned non-sensitive artifacts only; no participant data, credentials, unpublished third-party material, or untrusted network services. Recheck advisories whenever pins change. Supersedes the "no exception granted" status in D-019.
+
+**Q:** Keep awesome-reverse-engineering? **A:** No. The maintainer removed it because REA covers the team's reverse-engineering needs. Pin, local checkout, and references were removed.
+
+**Q:** How are the tools exposed to clients? **A:** REA's MCP server is registered at project scope for Claude (`.mcp.json`) and VS Code (`.vscode/mcp.json`); Codex needs a per-user `codex mcp add` because Codex 0.160.1 did not load a project config here. Feynman is a CLI used through `tools/run_tool.py`; each teammate authenticates their own model provider. No research job or native analysis was run.
+
+**Q:** Merge? **A:** The maintainer approved a local merge of `chore/research-workspace` into main with `--no-ff`; the maintainer pushes.

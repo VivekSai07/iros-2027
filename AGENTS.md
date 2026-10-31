@@ -41,4 +41,4 @@ Reuse existing code and utilities. Do not select a robotics framework merely to 
 
 Run `python3 -m unittest discover -s tests -v` and `python3 tools/check_repo.py` for repository changes. Run method-specific checks for code changes; report unavailable hardware, credentials, or environments. Readiness is not a successful reproduction, and a passing parser is not proof that a client loaded its configuration.
 
-External tools are opt-in and pinned as described in [tools](tools/README.md). Do not run upstream installers over our entry points, alter global settings, automatically update tools, or install arbitrary tools from the reference catalog. Review tool changes on a branch.
+External tools are opt-in and pinned as described in [tools](tools/README.md). Do not run upstream installers over our entry points, alter global settings, automatically update tools, or install unpinned analysis tools. Review tool changes on a branch.

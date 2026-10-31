@@ -32,4 +32,4 @@ SOFTWARE.
 
 ## External Integrations
 
-Other tool source is fetched separately into ignored local directories or installed from the tracked dependency lock. Their licenses remain in those distributions. Understand-Anything, Feynman, and REA list MIT licenses; the reference catalog lists CC0-1.0. This does not license the catalog's entries, commercial native-analysis providers, papers, datasets, or checkpoints. Check the pinned distribution and preserve notices before copying code into this repository.
+Other tool source is fetched separately into ignored local directories or installed from the tracked dependency lock. Their licenses remain in those distributions. Understand-Anything, Feynman, and REA list MIT licenses. This does not license their dependencies' separate terms, commercial native-analysis providers, papers, datasets, or checkpoints. Check the pinned distribution and preserve notices before copying code into this repository.

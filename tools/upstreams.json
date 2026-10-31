@@ -10,11 +10,5 @@
     "revision": "f08763d11d0202a8a8f52b5dedda6d1b2e2ebac8",
     "reference": "v2.9.0",
     "purpose": "Paper implementation and knowledge-base graphs"
-  },
-  "awesome-reverse-engineering": {
-    "url": "https://github.com/morluto/awesome-reverse-engineering.git",
-    "revision": "36167d66fe97f6d27c4c69c4fde0e6c206000f44",
-    "reference": "main snapshot checked 2026-10-31",
-    "purpose": "Reference catalog only; no automatic installation of entries"
   }
 }

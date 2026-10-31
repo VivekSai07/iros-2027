@@ -4,10 +4,20 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from tools.run_tool import create_job, validate_job_id, write_record
+from tools.run_tool import create_job, feynman_needs_job, validate_job_id, write_record
 
 
 class ToolRunnerTests(unittest.TestCase):
+    def test_feynman_admin_commands_run_without_a_job(self):
+        for arguments in (["setup"], ["doctor"], ["status"], ["--version"], ["model", "login"], ["alpha", "status"]):
+            with self.subTest(arguments=arguments):
+                self.assertFalse(feynman_needs_job(arguments))
+
+    def test_feynman_research_commands_require_a_job(self):
+        for arguments in ([], ["lit", "topic"], ["--prompt=topic"], ["chat"], ["alpha", "search", "topic"], ["2026-10-31-owner-topic", "lit", "x"]):
+            with self.subTest(arguments=arguments):
+                self.assertTrue(feynman_needs_job(arguments))
+
     def test_rejects_paths_and_ambiguous_job_names(self):
         for name in ("../outside", "/tmp/job", "topic", "2026-10-31-../outside", "2026-10-31-Topic"):
             with self.subTest(name=name), self.assertRaises(ValueError):

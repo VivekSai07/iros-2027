@@ -70,6 +70,18 @@ Repository owners should configure hosting protections: require reviewed PRs and
 
 Enable only the tools needed for a task. Local readiness checks and CLI help do not prove that a client has loaded a plugin or authenticated. Keep credentials in the client's secure credential store; never paste them into configuration committed here.
 
+Per-machine tool setup (each teammate, once; details and the accepted dependency-risk bounds are in [tools](../tools/README.md)):
+
+```bash
+python3 tools/bootstrap.py sources
+python3 tools/bootstrap.py runtime --accept-upstream-risk
+python3 tools/bootstrap.py check
+python3 tools/run_tool.py feynman setup
+codex mcp add rea -- python3 "$PWD/tools/run_tool.py" rea mcp
+```
+
+Claude and VS Code pick up the tracked `rea` MCP registration from the repository; approve it when prompted.
+
 ## Storage And Safety
 
 See [data](../data/README.md) and [results](../results/README.md). Large payloads stay local until a shared backend is approved and documented. Git does not synchronize ignored files. Do not begin team collection with only one person's local dataset path.

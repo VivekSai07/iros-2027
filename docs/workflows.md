@@ -21,7 +21,7 @@ Check novelty weekly while choosing a direction and before freezing the submissi
 
 ## 3. Paper-To-Code Audit And Reproduction
 
-Pin the paper version, implementation URL/commit, license, checkpoints, environment, and data. Keep upstream checkouts under `.tools/papers/<paper-id>/`, not mixed into our source. Source-available implementations normally use Understand-Anything plus direct code inspection. Use REA only when artifact structure, binaries, or runtime behavior needs investigation; use the reference catalog to choose a justified tool, not to install everything.
+Pin the paper version, implementation URL/commit, license, checkpoints, environment, and data. Keep upstream checkouts under `.tools/papers/<paper-id>/`, not mixed into our source. Source-available implementations normally use Understand-Anything plus direct code inspection. Use REA only when artifact structure, binaries, or runtime behavior needs investigation; install a native analysis provider only when a specific question needs it.
 
 Produce a [paper/code audit](templates.md#papercode-audit): trace each central equation/algorithm to its actual implementation, preprocessing, training loss, inference path, configurations, and evaluation. Separate documented behavior, inspected behavior, observed behavior, and unknowns. Graph summaries must be checked against code and are not novelty verdicts.
 

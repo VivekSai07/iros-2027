@@ -18,6 +18,18 @@ def validate_job_id(name):
     datetime.date.fromisoformat(name[:10])
 
 
+FEYNMAN_ADMIN = {"setup", "doctor", "status", "help", "--help", "-h", "--version", "-v", "model", "packages", "mcp", "search", "update"}
+FEYNMAN_ALPHA_ADMIN = {"login", "logout", "status"}
+
+
+def feynman_needs_job(arguments):
+    if not arguments:
+        return True
+    if arguments[0] == "alpha":
+        return len(arguments) < 2 or arguments[1] not in FEYNMAN_ALPHA_ADMIN
+    return arguments[0] not in FEYNMAN_ADMIN
+
+
 def create_job(parent, name):
     validate_job_id(name)
     job = parent / name
@@ -58,7 +70,7 @@ def main():
         command = [str(NODE), str(entry), *args.arguments]
     if not entry.is_file():
         raise FileNotFoundError("Tool is missing; see python3 tools/bootstrap.py --help.")
-    if args.tool != "feynman":
+    if args.tool != "feynman" or not feynman_needs_job(args.arguments):
         return subprocess.run(command, cwd=ROOT, env=environment).returncode
     if len(args.arguments) < 2:
         raise ValueError("Usage: run_tool.py feynman YYYY-MM-DD-owner-topic <workflow or arguments>")
