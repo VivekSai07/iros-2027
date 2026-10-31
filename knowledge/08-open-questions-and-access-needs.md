@@ -23,3 +23,10 @@
 ## Added 2026-10-18 (G1 re-check)
 ~~10. **OpenReview NeurIPS 2026 RTCA workshop** accepted papers (https://openreview.net/group?id=NeurIPS.cc%2F2026%2FWorkshop%2FRTCA) — page is JavaScript-rendered, agent fetch failed; please check manually for robot/manipulation interruption papers.~~ RESOLVED 2026-10-18: list supplied by user (`inputs/rtca-accepted.md`, 37 posters, may continue on another page); no manipulation-with-spoken-interruption paper among them (D-017).
 ~~11. **RIAP full paper** (NeurIPS 2026 poster 162424): title/authors not shown on the virtual page; need camera-ready/preprint to see whether it simulates manipulation physics with spoken revisions.~~ RESOLVED 2026-10-18: full text supplied by user, see `inputs/riap-notes.md` and D-016 (synthetic replay, no physics; not a G1/G2 competitor).
+
+## Added 2026-10-31 — Repository activation decisions
+12. **Feynman/REA runtime activation:** pinned dependencies have upstream advisories, including high-severity entries in the npm audit [V audit output]. Recheck upstream fixes or explicitly approve a bounded risk exception before activation. No exception has been granted. Details in `../tools/README.md`.
+13. **Shared artifact storage:** agree on a backend and access/retention policy before multi-person dataset collection. Ignored local data is not synchronized by Git. See `../data/README.md`.
+14. **Distribution terms:** select appropriate code/data/manuscript licenses before public release, preserving third-party terms and participant permissions. No project-wide license was assumed during setup.
+
+These do not change the still-open research-direction and ownership questions above. Root `../README.md` and `index.md` supersede old navigation instructions.

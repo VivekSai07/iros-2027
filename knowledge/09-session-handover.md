@@ -38,3 +38,6 @@ Written 2026-10-18 from the Claude chat session that started 2026-10-08. The cha
 
 ## 6. Open risks
 Scoop risk (medium-high, rising); ethics/participant timeline; SO-101 specs are secondary-source until measured; some claims are abstract-only (paywalled IEEE/ACM, RIAP status, NIABench details).
+
+## 7. Navigation update — 2026-10-31
+This handover above is historical. Later decisions resolve or supersede several access/install statements. Start new sessions at `../README.md`, `../AGENTS.md`, and `index.md`, then read the latest task log. D-019 records the shared repository and Git rules. The direction remains undecided. Current tool readiness and the dependency-activation gate are in `../tools/README.md`; do not infer today's installation state from section 5 above.
