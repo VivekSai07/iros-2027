@@ -16,7 +16,10 @@ Owner: requesting maintainer. Branch: `chore/research-workspace`, from main at `
 - Scope-specific tests cover Git hooks, plain-message rules, isolated job IDs, dates, non-overwrite behavior, and atomic record preservation.
 - Repository checks validate new local Markdown targets, JSON, immutable source pins, CLI lock consistency, and canonical skill links. They do not inspect legacy links, remote URLs, anchors, credentials, or live client loading.
 - The old experiment was not rerun, optional CLI/MCP/native-provider workflows were not executed, and no graph pipeline was run. Source installation is not equivalent to those checks.
-- Final full-suite, fresh-clone, and local checkpoint results will be recorded after the implementation checkpoint.
+- Implementation checkpoint: `a0d1d65` (`chore: organize shared research workspace`), authored and committed using the existing `VivekSai07` identity, with no attribution trailer.
+- Final implementation suite: 14 tests passed; repository checks and Git whitespace checks passed. Vault contract verification returned `ok: true` after navigation updates.
+- A separate clean local clone of the implementation checkpoint passed all 14 tests, repository/commit-message/whitespace checks, and the vault doctor using the pinned source tool. The clone had no ignored downloads or caches; source tools remain an opt-in installation for teammates.
+- Local hooks are enabled in the working clone. Main remains at `5135470`. No merge, push, risk exception, paid research, or global runtime change occurred.
 
 ## Remaining Decisions
 

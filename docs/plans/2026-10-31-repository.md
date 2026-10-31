@@ -41,8 +41,10 @@
 - [x] Run unit tests, repository/link/config checks, and Git whitespace validation.
 - [x] Exercise hooks with temporary Git repositories, including main-branch protection and valid merge commits.
 - [x] Append the repository decision and tooling pass to the research logs; publish a current-state index and task handover.
-- [ ] Review the final staged changes and local commit metadata.
-- [ ] Inform the user, make a plain-message local commit, and leave the branch unmerged and unpushed.
+- [x] Review the final staged changes and local commit metadata.
+- [x] Inform the user, make a plain-message local commit, and leave the branch unmerged and unpushed.
+
+Implementation checkpoint `a0d1d65` passed a separate clean-clone verification: 14 tests, repository and commit-message checks, whitespace checks, and vault doctor. See the [task handover](../../logs/2026-10-31-repository-setup.md) for execution limits and remaining human decisions.
 
 ## Acceptance Checks
 
