@@ -29,3 +29,15 @@
 - `/audit` RTC paper vs LeRobot main: `outputs/rtc-smolvla-lerobot-audit.md` (feasible; 3 material default mismatches; missing hooks listed).
 - `/draft` story rewrite applying all review points: `outputs/paper-story-v2.md`, adopted as `06-paper-story.md` (D-014).
 - Cumulative Feynman spend about $60.4 at list price.
+
+## Pass 9 — 2026-10-31 — Repository and research-workflow setup
+- Infrastructure/tooling pass only; no new scientific search, novelty re-check, paid model run, or change to gap/story conclusions. The direction remains open (D-019).
+- Reviewed the five requested upstream repositories and relevant installation/CLI documentation [V documentation], resolved immutable source revisions [V Git metadata], and pinned Feynman/REA npm versions and dependencies [V registry metadata]. These flags do not mean live client workflows or research reproductions were verified.
+- Preserved and relocated prior research; added a current-state index, shared agent policy, literature/reproduction/RQ/data/experiment/paper workflows, record templates, local Git safeguards, and offline tests/CI.
+- claude-obsidian additive adoption plus doctor/contract verification completed. Its source/claim ledgers are empty; legacy reports were not ingested or newly verified.
+- Found and documented Understand-Anything's worktree-to-primary graph redirect [V pinned skill]; repository routing explicitly disables it. Graph generation itself was not run.
+- npm audit reported 10 affected package entries, including 3 high severity [V audit output]; Feynman/REA activation is gated for human review rather than forced dependency changes. No credentials were read or stored. No native analysis provider was installed.
+- Setup and verification details: `../logs/2026-10-31-repository-setup.md`, `../tools/README.md`, and `../docs/plans/2026-10-31-repository.md`.
+
+## Pass 10 — 2026-10-31 — Tool activation
+- Infrastructure only; no scientific search or change to conclusions. Feynman and REA runtimes activated under the D-020 exception; REA MCP handshake verified (229 tools); Feynman unauthenticated. Reverse-engineering catalog removed. Details: `../logs/2026-10-31-repository-setup.md`.

@@ -1,0 +1,14 @@
+{
+  "claude-obsidian": {
+    "url": "https://github.com/AgriciDaniel/claude-obsidian.git",
+    "revision": "6414e1a232a00515dc0b89f61b1d792b3dc93237",
+    "reference": "v3.0.1",
+    "purpose": "Shared vault core and portable knowledge workflows"
+  },
+  "understand-anything": {
+    "url": "https://github.com/Egonex-AI/Understand-Anything.git",
+    "revision": "f08763d11d0202a8a8f52b5dedda6d1b2e2ebac8",
+    "reference": "v2.9.0",
+    "purpose": "Paper implementation and knowledge-base graphs"
+  }
+}

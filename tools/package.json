@@ -1,0 +1,12 @@
+{
+  "name": "iros27-research-tools",
+  "private": true,
+  "version": "0.0.0",
+  "engines": {
+    "node": "24.22.1"
+  },
+  "dependencies": {
+    "@companion-ai/feynman": "0.5.61",
+    "rea-agents": "6.8.0"
+  }
+}

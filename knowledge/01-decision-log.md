@@ -69,3 +69,28 @@ User supplied the 37 accepted posters (`inputs/rtca-accepted.md`; the page may c
 
 ## D-018 — 2026-10-18 — Moved to a standalone repository (`iros27-hri`)
 **Q:** Why a new repo? **A:** IROS 2027 is a serious effort and must not share a repository with unrelated earlier work. The folder was extracted with its 5 commits and authorship preserved; files now live at the repo root (older entries that mention a folder path are historical). References to the earlier project were removed. No remote yet; local only. Repo name is provisional.
+
+---
+## D-019 — 2026-10-31 — Shared research workspace and collaboration policy
+**Q:** Is the earlier literature or H1 recommendation final? **A:** No. The team is still discussing the problem statement and research question. Repository setup does not select a direction or methodology, reverify literature, or claim experimental outcomes.
+
+**Q:** How is the repository organized? **A:** The user approved a research monorepo with a shared knowledge area, reusable code, configurations, experiments, dataset manifests/local payloads, results, manuscript material, documentation, task logs, and pinned tool integrations. Existing numbered research documents plus inputs/notes/outputs/refs were moved together under `knowledge/`, preserving relative paths and original contents before these append-only updates. The existing power experiment was not changed. Root `README.md`, `AGENTS.md`, and `knowledge/index.md` are the new entry points. This supersedes earlier location/setup descriptions without erasing them.
+
+**Q:** What does "no AI footprint" mean? **A:** The user explicitly clarified: it applies to commit messages. No AI branding, generated-by text, AI trailers, or AI co-authorship in commits. Agent configuration, tool provenance, and useful task logs may be tracked. Third-party licenses and required research disclosures remain intact.
+
+**Q:** What may agents do with Git? **A:** Inform the user and make local commits without asking, using the existing human Git identity. Start features/methods/tasks on branches from main. Never push. Merge only after explicit approval of the named branch, always with `--no-ff` and a retained merge commit. Implementation approval is not merge approval. Use separate worktrees for concurrent writers. Local hooks are safeguards, not proof of human authorization.
+
+**Q:** How do Claude, Codex, and Copilot share instructions? **A:** Root `AGENTS.md` is canonical. Claude imports it; Copilot's entry point references it; Codex reads it directly. The portable research-workflow skill is stored once and linked to client discovery directories. Shared artifacts and logs, not private chat memory, carry state.
+
+**Q:** How are the requested tools included? **A:** Versioned integration code, source pins, dependency lock, and workflow routes are tracked. Pinned source checkouts are local under `.tools/`; heavy payloads and credentials are not tracked. claude-obsidian's vault foundation is initialized and checked. Understand-Anything and the reference catalog are checked out; no graph or native analysis was run. Feynman and REA package versions are pinned, but activation is gated after npm reported upstream dependency advisories (7 moderate, 3 high affected package entries). Human risk review or a reviewed upstream update is required before activation. No paid research or authentication was performed. See `../tools/README.md` for exact status and primary upstream links.
+
+**Q:** What remains a team decision? **A:** The RQ/method, individual task ownership, shared artifact backend, dataset/participant permissions, experiment budgets, repository release license, and conference requirements. Setup does not silently decide them.
+
+## D-020 — 2026-10-31 — Feynman and REA activated; reverse-engineering catalog removed
+**Q:** Should the gated Feynman/REA runtimes be set up despite the npm advisories (7 moderate, 3 high affected entries, D-019)? **A:** Yes; the maintainer asked for both to be set up. This is a bounded exception for the pinned versions (Feynman 0.5.61, REA 6.8.0): public papers, public repositories, and team-owned non-sensitive artifacts only; no participant data, credentials, unpublished third-party material, or untrusted network services. Recheck advisories whenever pins change. Supersedes the "no exception granted" status in D-019.
+
+**Q:** Keep awesome-reverse-engineering? **A:** No. The maintainer removed it because REA covers the team's reverse-engineering needs. Pin, local checkout, and references were removed.
+
+**Q:** How are the tools exposed to clients? **A:** REA's MCP server is registered at project scope for Claude (`.mcp.json`) and VS Code (`.vscode/mcp.json`); Codex needs a per-user `codex mcp add` because Codex 0.160.1 did not load a project config here. Feynman is a CLI used through `tools/run_tool.py`; each teammate authenticates their own model provider. No research job or native analysis was run.
+
+**Q:** Merge? **A:** The maintainer approved a local merge of `chore/research-workspace` into main with `--no-ff`; the maintainer pushes.
