@@ -41,3 +41,10 @@
 
 ## Pass 10 — 2026-10-31 — Tool activation
 - Infrastructure only; no scientific search or change to conclusions. Feynman and REA runtimes activated under the D-020 exception; REA MCP handshake verified (229 tools); Feynman unauthenticated. Reverse-engineering catalog removed. Details: `../logs/2026-10-31-repository-setup.md`.
+
+## Pass 11 — 2026-11-01 — Assistance-boundary RQ scan and repository audit
+- Bounded public-web/manual pass over primary full texts and publisher abstracts; no paid model, Feynman job, robot, GPU, or participant data. Feynman was unavailable in this checkout because its ignored local Node/runtime is absent.
+- Broad H2 novelty is closed: deciding when to help/not help, non-intrusive assistance, ask-or-act, confidence-based return of control, and proactive initiative all have direct prior art.
+- Narrow opening proposed, not adopted: an uncertainty-calibrated physical policy choosing `DO` / `ASK` / `WAIT` / `REFRAIN`, evaluated by counterfactual work saved minus wrong-help, undo, interruption, and social cost.
+- Recommended scientific spine, not adopted: validate whether static, scripted-adaptive, or LLM-adaptive proxy evaluations predict policy rankings and failure modes with real human partners. GAP (2609.28910) explicitly lacks real longitudinal validation.
+- Outputs: `outputs/2026-11-01-assistance-boundary-rq-scan.md` and `outputs/2026-11-01-repository-audit.md`. No decision-log entry, gap/story rewrite, or current-state promotion was made; teammate review and a team choice remain required.
